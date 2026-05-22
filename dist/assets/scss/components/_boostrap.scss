@@ -1,0 +1,26 @@
+@import '../utils/variables';
+@import '../utils/mixins';
+.bootstrap-datetimepicker-widget table td.active,
+.bootstrap-datetimepicker-widget table td.active:hover {
+	background-color: $warning;
+	text-shadow: unset;
+}
+.bootstrap-datetimepicker-widget table td.today:before {
+	border-bottom-color: $warning;
+}
+.bootstrap-datetimepicker-widget table thead tr:first-child th:hover {
+    background: transparent;
+}
+.bor-b1{
+    border-bottom: 1px solid $gray-300;
+}
+
+.link-purple {
+	color: $purple;
+	&:hover {
+	  color: darken($purple, 2);
+	}
+}
+hr {
+	border-color: $light-900;
+}

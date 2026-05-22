@@ -1,0 +1,193 @@
+.campaign-box {
+	display: -webkit-box;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-box-align: center;
+	-ms-flex-align: center;
+	align-items: center;
+	justify-content: space-between;
+	-webkit-justify-content: space-between;
+	-ms-flex-pack: space-between;
+	@include margin-padding(0 0 24px, 24px);
+	@include rounded(5px);
+	@include respond-below(custom1399) {
+		@include margin-padding(0 0 24px, 15px);
+	}
+	.campaign-img {
+		display: -webkit-box;
+		display: -ms-flexbox;
+		display: flex;
+		-webkit-box-align: center;
+		-ms-flex-align: center;
+		align-items: center;
+		span {
+			width: 44px;
+			height: 44px;
+			@include rounded(5px);
+			display: -webkit-box;
+			display: -ms-flexbox;
+			display: flex;
+			-webkit-box-align: center;
+			-ms-flex-align: center;
+			align-items: center;
+			justify-content: center;
+			-webkit-justify-content: center;
+			-ms-flex-pack: center;
+			color: $white;
+			margin-right: 10px;
+		}
+		p {
+			color: $gray-900;
+			font-weight: $font-weight-medium;
+		}		
+	}
+	h2 {
+		color: $gray-400;
+		@include respond-below(custom1399) {
+			font-size: $font-size-24;
+		}
+		@include respond-below(custom991) {
+			font-size: $font-size-20;
+		}
+	}
+	&.bg-danger-light {
+		background-color: $danger-100;
+		span {
+			background-color: $danger;
+		}
+	}
+	&.bg-warning-light {
+		background-color: $warning-100;
+		span {
+			background-color: $secondary;
+		}
+	}
+	&.bg-purple-light {
+		background-color: $purple-100;
+		span {
+			background-color: $tertiary;
+		}
+	}
+	&.bg-success-light {
+		background-color: $success-200;
+		span {
+			background-color: $green;
+		}
+	}
+}
+.campaign-tab {
+	@include margin-padding(0 0 20px, 15px 15px 0);
+	box-shadow: 0px 4px 74px 0px #D0D0D040;
+	background-color: $white;
+	@include rounded(5px);
+	ul {
+		li {
+			margin-right: 15px;
+			a {
+				position: relative;
+				font-weight: $font-weight-medium;
+				border-bottom: 4px solid $white;
+				@include margin-padding(null, 10px 10px 20px);
+				display: -webkit-inline-box;
+				display: -ms-inline-flexbox;
+            	display: inline-flex;
+			    -webkit-box-align: center;
+			    -ms-flex-align: center;
+			    align-items: center;
+				justify-content: center;
+			    -webkit-justify-content: center;
+			    -ms-flex-pack: center;
+				&.active {
+					border-color: $primary;
+				}
+				span {
+					width: 20px;
+					height: 20px;
+					display: -webkit-inline-box;
+			        display: -ms-inline-flexbox;
+            		display: inline-flex;
+			        -webkit-box-align: center;
+			        -ms-flex-align: center;
+			        align-items: center;
+			        justify-content: center;
+			        -webkit-justify-content: center;
+			        -ms-flex-pack: center;
+			        border: 1px solid $light-900;
+			        @include rounded(50%);
+			        margin-left: 10px;
+			        font-size: $font-size-10;
+			        font-weight: $font-weight-semibold;
+			        color: $gray-400;
+				}
+			}
+			&:last-child {
+				margin-right: 0;
+			}
+		}
+	}
+}
+ul.project-mem {
+	display: -webkit-inline-box;
+	display: -ms-inline-flexbox;
+	display: inline-flex;
+	-webkit-box-align: center;
+	-ms-flex-align: center;
+	align-items: center;
+  	li {
+  		margin-left: -10px;
+		display: inline-flex;
+		a {
+			width: 24px;
+			height: 24px;
+		}
+  		&:first-child {
+  			margin-left: 0;
+  		}
+  		a {
+  			img {
+  				width: 24px;
+  				height: 24px;
+  				border-radius: 50%;
+  				border: 1px solid $white;
+  			}
+  		}
+  		&.more-set {
+  			a {
+  				width: 24px;
+  				height: 24px;
+  				border-radius: 50%;
+  				background-color: $white;
+  				border: 1px solid $light-900;
+  				display: -webkit-inline-box;
+				display: -ms-inline-flexbox;
+				display: inline-flex;
+				-webkit-box-align: center;
+				-ms-flex-align: center;
+				align-items: center;
+				justify-content: center;
+				-webkit-justify-content: center;
+				-ms-flex-pack: center;
+				font-size: $font-size-12;
+				font-weight: $font-weight-semibold;
+				color: $gray-400;
+  			}
+  		}
+  	}
+}
+.list-progress {
+	li {
+		display: inline-block;
+		margin-right: 15px;
+		h6 {
+			font-weight: $font-weight-semibold;
+		}
+		p {
+			font-size: 12px;
+			font-weight: $font-weight-semibold;
+			color: $gray-400;
+		}
+		&:last-child {
+			margin-right: 0;
+		}
+	}
+}

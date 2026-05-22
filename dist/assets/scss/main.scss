@@ -1,0 +1,76 @@
+/****** Utils ******/
+@import "utils/variables";
+@import "utils/mixins";
+
+
+/****** Layout ******/
+@import "layout/common";
+@import "layout/content";
+@import "layout/header";
+@import "layout/sidebar";
+@import "layout/theme";
+@import "layout/theme-settings";
+@import "layout/notification";
+
+/******* Components ******/
+@import "components/avatar";
+@import "components/boostrap";
+@import "components/button";
+@import "components/badge";
+@import "components/border";
+@import "components/calendar";
+@import "components/chart";
+@import "components/call";
+@import "components/chat";
+@import "components/dropdown";
+@import "components/email";
+@import "components/file-manager";
+@import "components/icons";
+@import "components/progress";
+@import "components/pagination";
+@import "components/font";
+@import "components/typography";
+@import "components/alerts";
+@import "components/popovers";
+@import "components/forms";
+@import "components/notes";
+@import "components/todo";
+@import "components/tables";
+@import "components/accordion";
+@import "components/breadcrumb";
+@import "components/cards";
+@import "components/tooltips";
+@import "components/navs-tabs";
+@import "components/ribbon";
+@import "components/popup";
+@import "components/grid";
+
+/******* Base *******/
+@import "base/base";
+@import "base/background";
+
+
+/******* Pages ******/
+@import "pages/contact";
+@import "pages/dashboard";
+@import "pages/error";
+@import "pages/login";
+@import "pages/settings";
+@import "pages/report";
+@import "pages/activity";
+@import "pages/tasks";
+@import "pages/analytics";
+@import "pages/project";
+@import "pages/leads";
+@import "pages/campaign";
+@import "pages/membership-plans";
+@import "pages/ui-pages";
+@import "pages/social-feed";
+@import "pages/super-admin";
+@import "pages/pricing";
+
+
+/******* Vendors ******/
+@import "vendors/select2";
+@import "vendors/datatables";
+

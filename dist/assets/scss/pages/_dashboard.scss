@@ -1,0 +1,141 @@
+@import '../utils/variables';
+@import '../utils/mixins';
+.daterange-picker{
+    .form-sort{
+        margin-left: 10px;
+       input{
+            padding-left: 25px;
+            height:38px;
+       }
+       .select2-container {
+            .select2-selection.select2-selection--single {
+                height: 38px;
+                .select2-selection__rendered{
+                    line-height: 38px;
+                }
+                .select2-selection__arrow {
+                    height: 38px;
+                }
+            }
+
+        }
+    }
+}
+.card-select {
+    ul {
+        display: flex;
+        align-items: center;
+        li{
+            + li{
+                margin-left: 12px;
+                
+            }
+        }
+    }        
+}
+.view-icons {
+    float: right;
+    @include respond-below(custom767) {
+        margin-right: 0;
+    }
+    .btn{
+        background-color: $white;
+        border: 1px solid $light-900;
+        color: $secondary-800;
+        font-size: $font-size-18;
+        min-width: 40px;
+        @include margin-padding(0 5px 0 0, 7px 0 3px 0);
+        &.active {
+            color: $secondary-900;
+        }
+        @include respond-below(custom767) {
+            min-width: 37px;
+            @include margin-padding(0 5px 0 0, 5px 0 3px 0);
+        }
+    }
+}
+.page-header {
+    .view-icons {
+        @include respond-below(custom767) {
+            margin-right: 10px;
+        }
+        @include respond-below(custom575) {
+            margin-right: 0;
+        }
+    }
+}
+.title-head {
+    justify-content: end;
+    align-items: center;
+    @include respond-below(custom767) {
+        justify-content: start;
+        margin-top: 20px;
+    }
+    @include respond-below(custom575) {
+        flex-direction: column;
+        row-gap: 20px;
+        align-items: start;
+    }
+    .add-btn {
+        margin-left: 10px;
+        border-radius: 5px;
+        @include respond-below(custom575) {
+            margin-left: 0;
+        }
+    }
+    .form-sort {
+        .list-view {
+            padding: 10px 10px 10px 30px;
+            background-color: $white;
+            border: 1px solid $light-900;
+            color: $secondary-600;
+            font-size: $font-size-14;
+            text-decoration: none;
+            line-height: normal;
+        }
+    }
+}
+.daterange-picker {
+    .form-sort {
+        min-width: 200px;
+    }
+}
+.statistic-dropdown {
+    .btn-primary{
+        padding: 6px 15px;
+        height: 35px;
+    }
+}
+td {
+    .badge-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+.badge-dots {
+    width:12px; 
+    height:12px;
+    border-radius: 5px;
+    margin-right:5px;
+    display: inline-flex;
+}
+.title-head {
+    .daterange-picker {
+        .form-sort {
+            height: auto;
+            min-width: 212px;
+            i {
+                left: 15px;
+                top: 9px;
+            }
+            input {
+                height: 32px;
+                min-height: 32px;
+            }
+        }
+        .bookingrange {
+            padding-left: 35px;
+        }
+    }
+}

@@ -1,0 +1,18 @@
+@import '../utils/variables';
+@import '../utils/mixins';
+.apexcharts-legend.apexcharts-align-center.position-right {
+    display: none;
+}
+.apexcharts-toolbar {
+    display: none !important;
+}
+#sales_charts,
+.chart-set{
+    overflow: hidden;
+}
+.apexcharts-canvas {
+    width: 100% !important;
+}
+.h-250 {
+    height: 250px;
+}

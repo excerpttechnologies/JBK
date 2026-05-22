@@ -1,0 +1,321 @@
+.kanban-list-items {
+    border: 1px solid $light-900;
+    box-shadow: 0px 4px 4px 0px #DBDBDB40;
+    border-radius: 5px;
+    @include margin-padding(0 20px 20px 0, 15px);
+    width: 100%;
+    min-width: 315px;
+    &:last-child {
+        margin-right: 0;
+    }
+}
+.icons-social {
+    a {
+        width: 30px;
+        height: 30px;
+        background: $light-500;
+        border-radius: 50%;
+        color: $title-color;
+        &:hover {
+            background: $danger-100;
+            color: $primary;
+        }
+    }
+}
+.kanban-drag-wrap {
+    > div {
+        &:last-child {
+            .kanban-card {
+                margin-bottom: 0;
+            }
+        }
+       
+    }
+}
+.pipeline-progress {
+    .progress {
+        background: transparent;
+        width: 70px;
+        height: 5px;
+        .progress-bar {
+            width: 70px;
+            height: 5px;
+            border-radius: 5px;
+            &.progress-bar-success {
+                background: $success;
+            }
+            &.progress-bar-violet {
+                background: $purple;
+            }
+            &.progress-bar-info {
+                background: $info;
+            }
+            &.progress-bar-warning {
+                background: $warning;
+            }
+            &.progress-bar-green {
+                background: $green;
+            }
+            &.progress-bar-danger {
+                background: $danger;
+            }
+        }
+    }
+    span {
+        margin-left: 10px;
+        color: $gray-900;
+        font-weight: $font-weight-medium;
+    }
+}
+.pipe-title {
+    .add-stage {
+        color: $primary;
+        font-weight: $font-weight-medium;
+        margin-bottom: 15px;
+        display: inline-block;
+        i {
+            margin-right: 8px;
+        }
+    }
+}
+.priority-info {
+    .dropdown {
+        .dropdown-toggle {
+            display: -webkit-box;
+            display: -ms-flexbox;
+            display: flex;
+            align-items: center;
+            -webkit-box-align: center;
+            -ms-flex-align: center;
+            justify-content: space-between;
+            -webkit-justify-content: space-between;
+            -ms-flex-pack: space-between;
+            border: 1px solid $light-900;
+            box-shadow: 0px 4px 4px 0px #DBDBDB40;
+            border-radius: 5px;
+            @include margin-padding(null, 5px 10px);
+            font-weight: $font-weight-medium;
+            &[aria-expanded=true] {
+                & > i {
+                    @include transition(all 0.2s ease);
+                    @include transform(rotate(180deg));
+                }
+            }
+            &::after {
+                content: none;
+            }
+            span{
+                display: -webkit-inline-box;
+                display: -ms-inline-flexbox;
+                display: inline-flex;
+                align-items: center;
+                -webkit-box-align: center;
+                -ms-flex-align: center;
+                i {
+                    font-size: $font-size-10;
+                }                
+            }
+        }
+        a {
+            font-size: $font-size-14;
+            color: $gray-900;
+            span{
+               display: -webkit-inline-box;
+               display: -ms-inline-flexbox;
+               display: inline-flex;
+               align-items: center;
+               -webkit-box-align: center;
+               -ms-flex-align: center;
+               i {
+                   font-size: 10px;
+               }                
+            }
+        }
+        .dropdown-menu {
+            width: 100%;
+        }
+    }
+}
+.select-pipeline {
+    position: relative;
+    margin-right: 8px;
+    .pipe-icon {
+        @include position(absolute, 50%, null, null, 10px);
+        z-index: 99999;
+        transform: translateY(-50%);
+        color: $gray-900;
+    }
+    .select2-container {
+        .select2-selection {
+            &.select2-selection--single {
+                height: 40px;
+                border-radius: 5px;
+                color: $gray-900;
+                font-weight: $font-weight-medium;
+                .select2-selection__rendered {
+                    padding-left: 30px;
+                    line-height: 40px;
+                    color: $gray-900;
+                    font-weight: $font-weight-medium;
+                    padding-right: 30px;
+                }
+                .select2-selection__arrow {
+                    height: 40px;
+                }
+            }
+        }
+    }
+}
+.pipeline-list {
+    border-bottom: 1px solid $light-900;
+    margin-bottom: 15px;
+    ul {
+        margin-bottom: 15px;
+        li {
+            display: inline-block;
+            &:first-child {
+                a {
+                    border-radius: 10px 0 0 10px;
+                }
+            }
+            &:last-child {
+                a {
+                    border-radius: 0;
+                }
+            }
+            a {
+                @include margin-padding(0 0 3px, 12px 25px 12px 50px);
+                font-size: $font-size-14;
+                font-weight: $font-weight-medium;
+                display: inline-block;
+                text-align: center;
+                background: $light-300;
+                color: $title-color;
+                position: relative;
+                min-width: 185px;
+                &::after {
+                    content: '';
+                    @include position(absolute, 0,-23px, null, null);
+                    width: 45px;
+                    height: 45px;
+                    -webkit-transform: scale(.707) rotate(45deg);
+                    -ms-transform: scale(.707) rotate(45deg);
+                    -moz-transform: scale(.707) rotate(45deg);
+                    -transform: scale(.707) rotate(45deg);
+                    z-index: 1;
+                    background: $light-300;
+                    -webkit-box-shadow: 2px -2px 0 1px #fff,3px -3px 0 2px rgba(255,255,255,.1);
+                    box-shadow: 2px -2px 0 1px #fff,3px -3px 0 2px rgba(255,255,255,.1);
+                    border-radius: 0 5px 0 50px;
+                } 
+                &.bg-info {
+                    color: $white;
+                    &::after {
+                        background: $info;
+                    }
+                    &:hover {
+                        background: $info !important;
+                    }
+                }    
+                &.bg-warning {
+                    color: $white;
+                    &::after {
+                        background: $warning;
+                    }
+                    &:hover {
+                        background: $warning !important;
+                    }
+                }     
+                &.bg-pending {
+                    color: $white;
+                    background: $purple !important;
+                    &::after {
+                        background: $purple;
+                    }
+                    &:hover {
+                        background: $purple !important;
+                    }
+                }      
+                &.bg-pink {
+                    color: $white;
+                    &::after {
+                        background: $pink;
+                    }
+                    &:hover {
+                        background: $pink !important;
+                    }
+                }        
+                &.bg-success {
+                    color: $white;
+                    &::after {
+                        background: $success;
+                    }
+                    &:hover {
+                        background: $success !important;
+                    }
+                }         
+                &.bg-danger {
+                    color: $white;
+                    &::after {
+                        background: $danger;
+                    }
+                    &:hover {
+                        background: $danger !important;
+                    }
+                }          
+                &.bg-gray {
+                    color: $white;
+                    background: $background-3;
+                    &::after {
+                        background: $background-3;
+                    }
+                    &:hover {
+                        background: $background-3 !important;
+                    }
+                }   
+                @include respond-below(custom575) {  
+                    width: calc(100% - 25px);
+                }       
+            }               
+            @include respond-below(custom575) {  
+                display: block;
+            }  
+        }
+    }
+}
+.kanban-card {
+    .card-topbar {
+        width: 100%;
+        height: 4px;
+    }
+}
+.kanban-warning {
+    .card-topbar {
+        background: $warning;
+    }
+}
+.kanban-purle {
+    .card-topbar {
+        background: $purple;
+    }
+}
+.kanban-success {
+    .card-topbar {
+        background: $success;
+    }
+}
+.kanban-danger {
+    .card-topbar {
+        background: $danger;
+    }
+}
+.kanban-info {
+    .card-topbar {
+        background: $info;
+    }
+}
+.kanban-pink {
+    .card-topbar {
+        background: $pink;
+    }
+}

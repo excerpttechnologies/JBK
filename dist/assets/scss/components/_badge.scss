@@ -1,0 +1,128 @@
+@import '../utils/variables';
+@import '../utils/mixins';
+.badge {
+    &.badge-primary {
+        background: rgba($primary, 0.1);
+        box-shadow: 0 1px 1px rgba($primary, 0.5);
+        color: $primary;
+        
+    }
+}
+@each $color, $value in $theme-colors {
+    .badge {
+        &.badge-#{$color} {
+            background: #{$value};
+            box-shadow: 0 1px 1px rgba($value, 0.5);
+            color: $white;
+        }
+        &.badge-soft-#{$color} {
+            background: rgba($value, 0.1);
+            box-shadow: 0 1px 1px rgba($value, 0.5);
+            color: $value;
+        }
+    }
+}
+.badge{
+    padding: .25rem .45rem;
+    text-transform:capitalize;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.5px;
+    border-radius: $border-radius;
+    color: $gray-900;
+    &.badge-xs {
+        font-size: 10px;
+        padding: 0px 5px;
+        line-height: 18px;
+    }
+    &.badge-sm {
+        font-size: 11px;
+        padding: 5px 8px;
+        line-height: 11px;
+    }
+    &.badge-md {
+        font-size: 12px;
+        padding: 5px 12px;
+        line-height: 1.5;
+    }
+    &.badge-lg {
+        font-size: $font-size-14;
+        padding: 0px 10px;
+        line-height: 30px;
+    }
+    &.badge-xl {
+        font-size: $font-size-16;
+        padding: 0px 15px;
+        line-height: 35px;
+    }
+}
+
+.badge-soft-purple {
+    background: $purple-100;
+    color: $purple;
+    
+}
+.bg-light-danger {
+    background-color: $danger-100 !important;
+    .badge-dots{
+        background-color: $danger-900;
+    }
+}
+.bg-light-success {
+    background-color: $success-100 !important;
+    .badge-dots{
+        background-color: $success-900;
+    }
+}
+.bg-light-info {
+    background-color:$info-100 !important;
+    .badge-dots{
+        background-color: $info-900;
+    }
+}
+.bg-light-warning {
+    background-color: $warning-100 !important;
+    .badge-dots{
+        background-color: $warning-900;
+    }
+}
+.badge-danger-light{
+    background-color: $danger-100 !important;
+    color: $danger-900;
+}
+.badge-pending{
+	background: #676DFF !important;
+    color: $white !important;
+}
+.badge-tertiary {
+    background: $tertiary;
+    color: $white;
+}
+.badge-status {
+    border-radius: 5px;
+    font-size: $font-size-12;
+    padding: 4px 8px;
+    min-width: 64px;
+    color: $white;
+}
+.badge-tag {
+    border-radius: 5px;
+    font-size: $font-size-12;
+    padding: 4px 4px;    
+    font-weight: $font-weight-normal;
+    &.badge-success-light {
+        background: $success-200;
+        color: $success;
+    }
+    &.badge-warning-light {
+        background: $warning-100;
+        color: $warning;
+    }
+    &.badge-purple-light {
+        background: $purple-100;
+        color: $purple;
+    }
+    &.badge-danger-light {
+        background: $danger-100;
+        color: $danger;
+    }
+}

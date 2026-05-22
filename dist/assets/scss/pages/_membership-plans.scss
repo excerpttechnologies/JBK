@@ -1,0 +1,42 @@
+.form-wrap {
+	.checkmarks.mem-plane-check {
+		top: 3px;
+	}
+}
+.table-imgname.flag-image img {
+	width: 24px;
+	height: 18px;
+	border-radius: 5px;
+}
+.table-imgname.flag-image {
+	display: flex;
+	align-items: center;
+	
+}
+.location-flag-img {
+	border: 1px solid #E8E8E8;
+	border-radius: 5px;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-right: 8px;
+}
+.table-imgname.flag-image span {
+	font-weight: 500;
+	color: #262A2A;
+}
+#delete_request {
+	td {
+		span {
+			&.badge {
+				cursor: pointer;
+			}
+		}
+	}
+}
+.wh-14 {
+	width: 14px;
+	height: 14px;
+}

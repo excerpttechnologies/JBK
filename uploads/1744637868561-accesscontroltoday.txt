@@ -1,0 +1,466 @@
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+const AccessControl = () => {
+    const [roles, setRoles] = useState([]);
+    const [roleId, setRoleId] = useState("");
+    const [roleName, setRoleName] = useState("");
+    const [permissions, setPermissions] = useState([]);
+    const [editingId, setEditingId] = useState(null);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+
+    // Updated permissions structure with sub-permissions
+    const permissionsStructure = {
+        "Dashboard": ["Leads Dashboard", "Employee Dashboard"],
+        "Lead & Inquiry": ["Lead Capture", "Lead Assignment", "Lead Followup", "Report And Insights"],
+        "Admission & Enrollment": [
+            "Registration Form",
+            "Application Processing",
+            "Enrollment & Allocation",
+            "Fee & Invoice Generation"
+        ],
+        "Student Information": [
+            "Student Database",
+            "Attendance Tracking",
+            "Certificate"
+        ],
+        "Fee & Accounting": [
+            "Expenses & Invoicing",
+            "Financial Reporting"
+        ],
+        "Communication": [
+            "Automated Notifications",
+            "Communication Channels",
+            "Event & Announcement Management"
+        ],
+        "Faculty & Staff": [
+            "Staff Profiles",
+            "Access Control",
+            "Payroll & Salary Management",
+            "Workload Distribution",
+            "Time Table",
+            "Leave Requests",
+            "Attendance"
+        ],
+        "Course, Class & Batch": [
+            "Branch",
+            "Subjects Creation",
+            "Course Creation",
+            "Course Type",
+            "Batch Creation"
+        ],
+        "Reports and Analytics": [
+            "Register Report",
+            "Attendance Report",
+            "FeePayment Report",
+            "Walkins Report"
+        ],
+        "HRMS": [
+            "Hire From Us",
+            "Jobs",
+            "Internal Hiring"
+        ],
+        "Event Management": [
+            "Event",
+            "Eventview",
+            "Annoucemnet"
+        ],
+        "Certificate": ["Certificate"],
+        "Faculty Profile": [
+            "Faculty Dashboard",
+            "Faculty TimeTable",
+            "Faculty Communication",
+            "Attendance",
+            "Assessment",
+            "Leave Request"
+        ],
+        "Student Profile": [
+            "Student Dashboard",
+            "Student Course",
+            "Course View",
+            "Student Payments",
+            "Student Attendance",
+            "Student Feedback"
+        ],
+        "Telecaller": ["Dashboard"]
+    };
+
+    // Get all available main permissions
+    const availablePermissions = Object.keys(permissionsStructure);
+
+    useEffect(() => {
+        fetchRoles();
+    }, []);
+
+    // Add event listener for clicks outside the dropdown
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownOpen && !event.target.closest('.dropdown')) {
+                setDropdownOpen(false);
+            }
+        }
+        
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [dropdownOpen]);
+
+    const fetchRoles = async () => {
+        try {
+            const res = await axios.get("/api/roles");
+            setRoles(res.data);
+        } catch (error) {
+            console.error("Error fetching roles:", error);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const roleData = { roleId, roleName, permissions };
+
+        try {
+            if (editingId) {
+                await axios.put(`/api/roles/${editingId}`, roleData);
+            } else {
+                await axios.post("/api/roles", roleData);
+            }
+
+            fetchRoles();
+            resetForm();
+            closeModal();
+        } catch (error) {
+            console.error("Error saving role:", error);
+        }
+    };
+
+    const handleEdit = (role) => {
+        setEditingId(role._id);
+        setRoleId(role.roleId);
+        setRoleName(role.roleName);
+        
+        // Set permissions and process sub-permissions
+        setPermissions(role.permissions || []);
+        
+        openModal();
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            await axios.delete(`/api/roles/${id}`);
+            fetchRoles();
+        } catch (error) {
+            console.error("Error deleting role:", error);
+        }
+    };
+
+    const resetForm = () => {
+        setRoleId("");
+        setRoleName("");
+        setPermissions([]);
+        setEditingId(null);
+    };
+
+    const openModal = () => {
+        const modalElement = document.getElementById("role-modal");
+        if (modalElement) {
+            const modalInstance = new window.bootstrap.Modal(modalElement);
+            modalInstance.show();
+        }
+    };
+
+    const closeModal = () => {
+        setDropdownOpen(false);
+        const modalElement = document.getElementById("role-modal");
+        if (modalElement) {
+            const existingModal = window.bootstrap.Modal.getInstance(modalElement);
+            if (existingModal) existingModal.hide();
+        }
+    };
+
+    const toggleDropdown = () => {
+        setDropdownOpen(!dropdownOpen);
+    };
+
+    const handlePermissionSelect = (perm) => {
+        const updatedPermissions = [...permissions];
+        
+        if (updatedPermissions.includes(perm)) {
+            // Remove the main permission and all its sub-permissions
+            const subPerms = permissionsStructure[perm] || [];
+            const filteredPermissions = updatedPermissions.filter(p => 
+                p !== perm && !subPerms.includes(p)
+            );
+            setPermissions(filteredPermissions);
+        } else {
+            // Add the main permission
+            updatedPermissions.push(perm);
+            setPermissions(updatedPermissions);
+        }
+    };
+
+    const handleSubPermissionSelect = (mainPerm, subPerm) => {
+        const updatedPermissions = [...permissions];
+        
+        if (updatedPermissions.includes(subPerm)) {
+            // Remove the sub-permission
+            const index = updatedPermissions.indexOf(subPerm);
+            if (index > -1) {
+                updatedPermissions.splice(index, 1);
+            }
+        } else {
+            // Add the sub-permission and make sure the main permission is also added
+            if (!updatedPermissions.includes(mainPerm)) {
+                updatedPermissions.push(mainPerm);
+            }
+            updatedPermissions.push(subPerm);
+        }
+        
+        setPermissions(updatedPermissions);
+    };
+
+    const removePermission = (perm) => {
+        // If it's a main permission, also remove all its sub-permissions
+        if (permissionsStructure[perm]) {
+            const subPerms = permissionsStructure[perm] || [];
+            const filteredPermissions = permissions.filter(p => 
+                p !== perm && !subPerms.includes(p)
+            );
+            setPermissions(filteredPermissions);
+        } else {
+            // Just remove the single permission
+            setPermissions(permissions.filter(p => p !== perm));
+        }
+    };
+
+    // Helper function to check if a sub-permission is selected
+    const isSubPermissionSelected = (subPerm) => {
+        return permissions.includes(subPerm);
+    };
+
+    // Helper function to format permissions for display
+    const formatPermissions = (permissionsArray) => {
+        if (!permissionsArray || permissionsArray.length === 0) return "None";
+        
+        // Group permissions by main categories
+        const groupedPermissions = {};
+        
+        // First, identify all main permissions that are selected
+        permissionsArray.forEach(perm => {
+            if (permissionsStructure[perm]) {
+                if (!groupedPermissions[perm]) {
+                    groupedPermissions[perm] = [];
+                }
+            }
+        });
+        
+        // Then, map sub-permissions to their main categories
+        permissionsArray.forEach(perm => {
+            // Skip if it's already identified as a main permission
+            if (permissionsStructure[perm]) return;
+            
+            // Find which main permission this sub-permission belongs to
+            for (const [main, subs] of Object.entries(permissionsStructure)) {
+                if (subs.includes(perm)) {
+                    if (!groupedPermissions[main]) {
+                        groupedPermissions[main] = [];
+                    }
+                    groupedPermissions[main].push(perm);
+                    break;
+                }
+            }
+        });
+
+        return Object.entries(groupedPermissions).map(([main, subs]) => {
+            return (
+                <div key={main} className="permission-group mb-1">
+                    <span className="fw-bold">{main}</span>
+                    {subs.length > 0 && (
+                        <div className="sub-permissions ms-2 small">
+                            {subs.join(", ")}
+                        </div>
+                    )}
+                </div>
+            );
+        });
+    };
+
+    return (
+        <>
+            <div className="main-wrapper">
+                <div className="page-wrapper cardhead">
+                    <div className="content container-fluid">
+                        <div className="row">
+                            <div className="col-md-12">
+                                <div className="page-header">
+                                    <h3>Access Control</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Roles List */}
+                        <div className="row">
+                            <div className="col-md-12">
+                                <div className="card">
+                                    <div className="card-header d-flex justify-content-between">
+                                        <h4>Roles List</h4>
+                                        <div className='col-xl-3'>
+                                            <button type="button" className="btn btn-primary waves-effect waves-light mt-1"
+                                                onClick={() => { resetForm(); openModal(); }}>
+                                                Add Role
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="card-body">
+                                        <table className="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th style={{ width: "15%" }}>Role ID</th>
+                                                    <th style={{ width: "25%" }}>Role Name</th>
+                                                    <th style={{ width: "40%" }}>Permissions</th>
+                                                    <th style={{ width: "20%" }}>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {roles.length > 0 ? (
+                                                    roles.map((role) => (
+                                                        <tr key={role._id}>
+                                                            <td>{role.roleId}</td>
+                                                            <td>{role.roleName}</td>
+                                                            <td>
+                                                                <div style={{ 
+                                                                    maxHeight: "100px", 
+                                                                    overflowY: "auto", 
+                                                                    fontSize: "0.85rem"
+                                                                }}>
+                                                                    {formatPermissions(role.permissions)}
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div className="hstack gap-2 fs-15">
+                                                                    <button onClick={() => handleEdit(role)}
+                                                                        className="btn btn-icon btn-sm btn-soft-info rounded-pill">
+                                                                        <i className="feather-edit"></i>
+                                                                    </button>
+                                                                    <button onClick={() => handleDelete(role._id)}
+                                                                        className="btn btn-icon btn-sm btn-soft-danger rounded-pill">
+                                                                        <i className="feather-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan="4" className="text-center">No roles found.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal */}
+                        <div id="role-modal" className="modal fade" tabIndex="-1" aria-hidden="true">
+                            <div className="modal-dialog modal-lg">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h4 className="modal-title">{editingId ? "Edit Role" : "Add New Role"}</h4>
+                                        <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={closeModal}></button>
+                                    </div>
+                                    <div className="modal-body p-4">
+                                        <form onSubmit={handleSubmit}>
+                                            <div className="mb-3">
+                                                <label className="form-label">Role ID</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={roleId}
+                                                    onChange={(e) => setRoleId(e.target.value)}
+                                                    disabled={!!editingId}
+                                                />
+                                            </div>
+                                            <div className="mb-3">
+                                                <label className="form-label">Role Name</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={roleName}
+                                                    onChange={(e) => setRoleName(e.target.value)}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="mb-3">
+                                                <label className="form-label">Permissions</label>
+                                                <div className="permissions-container p-3 border rounded" style={{ maxHeight: "400px", overflowY: "auto" }}>
+                                                    {availablePermissions.map((perm) => (
+                                                        <div key={perm} className="permission-item mb-3">
+                                                            <div className="form-check">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="form-check-input"
+                                                                    id={`perm-${perm}`}
+                                                                    checked={permissions.includes(perm)}
+                                                                    onChange={() => handlePermissionSelect(perm)}
+                                                                />
+                                                                <label className="form-check-label fw-bold" htmlFor={`perm-${perm}`}>
+                                                                    {perm}
+                                                                </label>
+                                                            </div>
+                                                            
+                                                            {/* Sub-permissions */}
+                                                            {permissionsStructure[perm]?.length > 0 && (
+                                                                <div className="sub-permissions ms-4 mt-2">
+                                                                    {permissionsStructure[perm].map((subPerm) => (
+                                                                        <div key={subPerm} className="form-check">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                className="form-check-input"
+                                                                                id={`subperm-${subPerm}`}
+                                                                                checked={isSubPermissionSelected(subPerm)}
+                                                                                onChange={() => handleSubPermissionSelect(perm, subPerm)}
+                                                                                disabled={!permissions.includes(perm)}
+                                                                            />
+                                                                            <label className="form-check-label" htmlFor={`subperm-${subPerm}`}>
+                                                                                {subPerm}
+                                                                            </label>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                
+                                                <div className="mt-3">
+                                                    <h6>Selected Permissions:</h6>
+                                                    <div className="selected-permissions mt-2">
+                                                        {permissions.map((perm) => (
+                                                            <span key={perm} className="badge bg-info me-1 mb-1">
+                                                                {perm}{" "}
+                                                                <button 
+                                                                    type="button" 
+                                                                    className="btn-close btn-close-white ms-1" 
+                                                                    onClick={() => removePermission(perm)}
+                                                                ></button>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="submit" className="btn btn-primary">Save Role</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+};
+
+export default AccessControl;

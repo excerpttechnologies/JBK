@@ -1,0 +1,690 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+
+const SuperAdminDashboard = () => {
+  const [followUps, setFollowUps] = useState([]);
+  const [filteredFollowUps, setFilteredFollowUps] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [telecallers, setTelecallers] = useState({});
+  const [selectedBranch, setSelectedBranch] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [editingEnquiry, setEditingEnquiry] = useState(null);
+  const [newTelecallerId, setNewTelecallerId] = useState("");
+  
+  // State for search, pagination and sorting
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortField, setSortField] = useState("followUpDate");
+  const [sortDirection, setSortDirection] = useState("desc");
+  // const formatDate = (dateString) => {
+  //   if (!dateString) return "";
+  //   const date = new Date(dateString);
+  //   return date.toLocaleString(); // Converts to local date and time
+  // };
+  
+  useEffect(() => {
+    fetchFollowUps();
+    fetchBranches();
+  }, [selectedBranch]);
+
+  useEffect(() => {
+    // Apply filtering, sorting and pagination whenever these dependencies change
+    applyFilters();
+  }, [followUps, searchTerm, sortField, sortDirection, currentPage, itemsPerPage]);
+
+  const fetchFollowUps = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axios.get("/api/followups", {
+        params: selectedBranch ? { branchId: selectedBranch } : {},
+      });
+      
+      const processedData = processFollowUps(response.data.followUps);
+      setFollowUps(processedData);
+    } catch (error) {
+      console.error("Error fetching follow-ups:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const processFollowUps = (data) => {
+    const enquiryMap = new Map();
+
+    data.forEach(telecallerData => {
+      telecallerData.followUps.forEach(followUp => {
+        if (followUp.enquiryId) {
+          const enquiryId = followUp.enquiryId._id;
+
+          if (!enquiryMap.has(enquiryId) ||
+            new Date(followUp.followUpDate) > new Date(enquiryMap.get(enquiryId).followUpDate)) {
+
+            enquiryMap.set(enquiryId, {
+              ...followUp,
+              telecallerId: telecallerData._id,
+              telecallerName: telecallerData.firstName + " " + telecallerData.lastName,
+              allFollowUps: []
+            });
+          }
+        }
+      });
+    });
+
+    data.forEach(telecallerData => {
+      telecallerData.followUps.forEach(followUp => {
+        if (followUp.enquiryId) {
+          const enquiryId = followUp.enquiryId._id;
+          if (enquiryMap.has(enquiryId)) {
+            enquiryMap.get(enquiryId).allFollowUps.push({
+              ...followUp,
+              telecallerId: telecallerData._id,
+              telecallerName: telecallerData.firstName + " " + telecallerData.lastName,
+            });
+          }
+        }
+      });
+    });
+
+    enquiryMap.forEach(item => {
+      item.allFollowUps.sort((a, b) =>
+        new Date(b.followUpDate) - new Date(a.followUpDate)
+      );
+    });
+
+    return Array.from(enquiryMap.values());
+  };
+
+  const applyFilters = () => {
+    let result = [...followUps];
+    
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(item => 
+        (item.telecallerName && item.telecallerName.toLowerCase().includes(term)) ||
+        (item.enquiryId?.firstname && item.enquiryId.firstname.toLowerCase().includes(term)) ||
+        (item.enquiryId?.lastname && item.enquiryId.lastname.toLowerCase().includes(term)) ||
+        (item.enquiryId?.mobileNumber && item.enquiryId.mobileNumber.toLowerCase().includes(term)) ||
+        (item.enquiryId?.interestedCourses && item.enquiryId.interestedCourses.toLowerCase().includes(term)) ||
+        (item.status && item.status.toLowerCase().includes(term))
+      );
+    }
+    
+    // Apply sorting
+    if (sortField) {
+      result.sort((a, b) => {
+        let aValue, bValue;
+        
+        if (sortField === "telecallerName") {
+          aValue = a.telecallerName || "";
+          bValue = b.telecallerName || "";
+        } else if (sortField === "name") {
+          aValue = `${a.enquiryId?.firstname || ""} ${a.enquiryId?.lastname || ""}`;
+          bValue = `${b.enquiryId?.firstname || ""} ${b.enquiryId?.lastname || ""}`;
+        } else if (sortField === "mobile") {
+          aValue = a.enquiryId?.mobileNumber || "";
+          bValue = b.enquiryId?.mobileNumber || "";
+        } else if (sortField === "course") {
+          aValue = a.enquiryId?.interestedCourses || "";
+          bValue = b.enquiryId?.interestedCourses || "";
+        } else if (sortField === "followUpDate") {
+          aValue = new Date(a.followUpDate || 0);
+          bValue = new Date(b.followUpDate || 0);
+        } else if (sortField === "status") {
+          aValue = a.status || "";
+          bValue = b.status || "";
+        } else if (sortField === "createdAt") {
+          aValue = new Date(a.enquiryId?.createdAt || 0);
+          bValue = new Date(b.enquiryId?.createdAt || 0);
+        }
+        
+        if (sortDirection === "asc") {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+    }
+    
+    setFilteredFollowUps(result);
+  };
+
+  const fetchBranches = async () => {
+    try {
+      const response = await axios.get("/api/branches");
+      setBranches(response.data);
+    } catch (error) {
+      console.error("Error fetching branches:", error);
+    }
+  };
+
+  const fetchTelecallers = async (branchId) => {
+    try {
+      if (telecallers[branchId]) return;
+
+      const response = await axios.get(`/api/telecallers/${branchId}`);
+      setTelecallers(prev => ({
+        ...prev,
+        [branchId]: response.data
+      }));
+    } catch (error) {
+      console.error("Error fetching telecallers:", error);
+    }
+  };
+
+  const handleViewDetails = (followUp, e) => {
+    e.stopPropagation();
+    setSelectedEnquiry(followUp);
+    setIsModalOpen(true);
+  };
+
+  const handleStartEdit = async (followUp, e) => {
+    e.stopPropagation();
+    setEditingEnquiry(followUp);
+    setNewTelecallerId("");
+
+    if (followUp.enquiryId && followUp.enquiryId.branchId) {
+      await fetchTelecallers(followUp.enquiryId.branchId);
+    }
+  };
+
+  const handleCancelEdit = (e) => {
+    e.stopPropagation();
+    setEditingEnquiry(null);
+  };
+
+  const handleReassign = async (e) => {
+    e.stopPropagation();
+
+    if (!newTelecallerId) {
+      alert("Please select a telecaller");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await axios.put(`/api/reassign-enquiry`, {
+        enquiryId: editingEnquiry.enquiryId._id,
+        oldTelecallerId: editingEnquiry.telecallerId,
+        newTelecallerId: newTelecallerId
+      });
+
+      alert("Enquiry reassigned successfully!");
+      setEditingEnquiry(null);
+      fetchFollowUps();
+    } catch (error) {
+      console.error("Error reassigning enquiry:", error);
+      alert("Failed to reassign enquiry");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (followUp, e) => {
+    e.stopPropagation();
+
+    if (!window.confirm("Are you sure you want to delete this enquiry?")) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await axios.delete(`/api/enquiry/${followUp.enquiryId._id}`);
+
+      alert("Enquiry deleted successfully!");
+      fetchFollowUps();
+    } catch (error) {
+      console.error("Error deleting enquiry:", error);
+      alert("Failed to delete enquiry");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+  };
+
+  // Get status badge styling based on status
+  const getStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case "converted":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "failed":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-blue-100 text-blue-800";
+    }
+  };
+
+  // Format student name helper
+  const formatName = (enquiry) => {
+    if (!enquiry?.enquiryId) return "N/A";
+    return `${enquiry.enquiryId.firstname || ""} ${enquiry.enquiryId.lastname || ""}`.trim() || "N/A";
+  };
+
+  // Get branch name helper
+  const getBranchName = (branchId) => {
+    if (!branchId) return "N/A";
+    return branches.find(b => b._id === branchId)?.name || branchId;
+  };
+
+  // Check if an enquiry is recently added (less than 24 hours old)
+  const isRecentlyAdded = (enquiry) => {
+    if (!enquiry?.enquiryId?.createdAt) return false;
+    const now = new Date();
+    const createdAt = new Date(enquiry.enquiryId.createdAt);
+    return (now - createdAt) < (24 * 60 * 60 * 1000); // less than 24 hours
+  };
+
+  // Pagination helpers
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const totalPages = Math.ceil(filteredFollowUps.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredFollowUps.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Handle sort header click
+  const handleSortClick = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Get sorting icon for headers
+  const getSortIcon = (field) => {
+    if (sortField !== field) return null;
+    return sortDirection === "asc" ? "↑" : "↓";
+  };
+
+  return (
+    <>
+      <div className="page-wrapper">
+        <div className="content">
+          <div className="row">
+            <div className="col-md-12">
+              <div className="page-header">
+                <div className="row align-items-center">
+                  <div className="col-md-4">
+                    <h3>Lead Followups</h3>
+                  </div>
+                  <div className="col-md-8 float-end ms-auto">
+                    <div className="d-flex title-head">
+                      <div className="daterange-picker d-flex align-items-center justify-content-center">
+                        <div className="head-icons mb-0">
+                          <a onClick={fetchFollowUps} data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="Refresh"><i className="ti ti-refresh-dot"></i></a>
+                          <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="Collapse" id="collapse-header"><i className="ti ti-chevrons-up"></i></a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="card">
+              <div className="card-header">
+                <div className="row align-items-center">
+                  <div className="col-md-4">
+                    <label className="font-medium text-gray-700 mr-3">Filter by Branch:</label>
+                    <select
+                      value={selectedBranch}
+                      onChange={(e) => setSelectedBranch(e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="">All Branches</option>
+                      {branches.map((branch) => (
+                        <option key={branch._id} value={branch.branchId}>
+                          {branch.branchName}({branch.location})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="search-box">
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Search by name, mobile, telecaller..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <span className="input-group-text">
+                          <i className="ti ti-search"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4 text-end">
+                    <label className="me-2">Show</label>
+                    <select 
+                      className="form-select form-select-sm d-inline-block w-auto me-2"
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1); // Reset to first page when changing items per page
+                      }}
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <label>entries</label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-body">
+                {isLoading ? (
+                  <div className="flex justify-center items-center p-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                  </div>
+                ) : (
+                  <div className="p-6 overflow-x-auto">
+                    {filteredFollowUps.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <p className="text-xl">No follow-ups found</p>
+                        <p className="mt-2">Try selecting a different branch or refreshing the data</p>
+                      </div>
+                    ) : (
+                      <div className="table-responsive">
+                        <table className="table table-nowrap mb-0">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th onClick={() => handleSortClick("telecallerName")} style={{ cursor: "pointer" }}>
+                                Telecaller {getSortIcon("telecallerName")}
+                              </th>
+                              <th onClick={() => handleSortClick("name")} style={{ cursor: "pointer" }}>
+                                Enquiry Name {getSortIcon("name")}
+                              </th>
+                              <th onClick={() => handleSortClick("mobile")} style={{ cursor: "pointer" }}>
+                                Mobile {getSortIcon("mobile")}
+                              </th>
+                              <th onClick={() => handleSortClick("course")} style={{ cursor: "pointer" }}>
+                                Interested Course {getSortIcon("course")}
+                              </th>
+                              <th>Branch</th>
+                              <th onClick={() => handleSortClick("followUpDate")} style={{ cursor: "pointer" }}>
+                                Latest Follow-up {getSortIcon("followUpDate")}
+                              </th>
+                              <th onClick={() => handleSortClick("status")} style={{ cursor: "pointer" }}>
+                                Status {getSortIcon("status")}
+                              </th>
+                              <th onClick={() => handleSortClick("createdAt")} style={{ cursor: "pointer" }}>
+                                Date Added {getSortIcon("createdAt")}
+                              </th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {currentItems.map((followUp, index) => {
+                              const isRecent = isRecentlyAdded(followUp);
+                              return (
+                                <tr
+                                  key={index}
+                                  className={`hover:bg-gray-50 transition-colors ${isRecent ? 'bg-blue-50' : ''}`}
+                                >
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {followUp.telecallerName || followUp.telecallerId || "N/A"}
+                                    {isRecent && <span className="badge bg-info text-white ms-2">New</span>}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {formatName(followUp)}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {followUp.enquiryId?.mobileNumber || "N/A"}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {followUp.enquiryId?.interestedCourses || "N/A"}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {getBranchName(followUp.enquiryId?.branchId)}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {formatDate(followUp.followUpDate)}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(followUp.status)}`}>
+                                      {followUp.status || "N/A"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {/* {formatDate(followUp.enquiryId?.createdAt)} */}
+                                    {formatDate(followUp.enquiryId?.createdAt)}
+
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {editingEnquiry && editingEnquiry.enquiryId?._id === followUp.enquiryId?._id ? (
+                                      <>
+                                        <div className="row">
+                                          <select
+                                            value={newTelecallerId}
+                                            onChange={(e) => setNewTelecallerId(e.target.value)}
+                                            className="p-1 border rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <option value="">Select Telecaller</option>
+                                            {telecallers[followUp.enquiryId?.branchId]?.map(tc => (
+                                              <option key={tc._id} value={tc._id}>
+                                                {tc.firstName} {tc.lastName}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                        <div className="hstack gap-2 fs-15">
+                                          <a
+                                            onClick={(e) => handleReassign(e)}
+                                            className="btn btn-icon btn-sm btn-soft-success rounded-pill"
+                                          >
+                                            <i className="feather-save"></i>
+                                          </a>
+                                          <a
+                                            onClick={(e) => handleCancelEdit(e)}
+                                            className="btn btn-icon btn-sm btn-soft-primary rounded-pill"
+                                          >
+                                            <i className="feather-x"></i>
+                                          </a>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="hstack gap-2 fs-15">
+                                          <a onClick={(e) => handleViewDetails(followUp, e)}
+                                            className="btn btn-icon btn-sm btn-soft-success rounded-pill" data-bs-toggle="modal"
+                                            data-bs-target="#leadpreview-modal">
+                                            <i className="feather-eye"></i></a>
+                                          <a onClick={(e) => handleStartEdit(followUp, e)}
+                                            className="btn btn-icon btn-sm btn-soft-info rounded-pill">
+                                            <i className="feather-edit"></i></a>
+                                          <a onClick={(e) => handleDelete(followUp, e)}
+                                            className="btn btn-icon btn-sm btn-soft-danger rounded-pill"><i
+                                              className="feather-trash"></i></a>
+                                        </div>
+                                      </>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    
+                    {/* Pagination */}
+                    {filteredFollowUps.length > 0 && (
+                      <div className="d-flex justify-content-between align-items-center mt-4">
+                        <div>
+                          Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredFollowUps.length)} of {filteredFollowUps.length} entries
+                        </div>
+                        <nav>
+                          <ul className="pagination pagination-sm mb-0">
+                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                              <a 
+                                className="page-link" 
+                                href="#" 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (currentPage > 1) paginate(currentPage - 1);
+                                }}
+                              >
+                                Previous
+                              </a>
+                            </li>
+                            
+                            {/* Show only nearby pages to avoid too many buttons */}
+                            {[...Array(totalPages)].map((_, i) => {
+                              const pageNum = i + 1;
+                              // Show first page, last page, current page and 1 page before/after current
+                              if (
+                                pageNum === 1 || 
+                                pageNum === totalPages || 
+                                (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                              ) {
+                                return (
+                                  <li key={i} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
+                                    <a 
+                                      className="page-link" 
+                                      href="#" 
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        paginate(pageNum);
+                                      }}
+                                    >
+                                      {pageNum}
+                                    </a>
+                                  </li>
+                                );
+                              } else if (
+                                // Show ellipsis if there's a gap
+                                (pageNum === currentPage - 2 && currentPage > 3) || 
+                                (pageNum === currentPage + 2 && currentPage < totalPages - 2)
+                              ) {
+                                return <li key={i} className="page-item disabled"><a className="page-link">...</a></li>;
+                              }
+                              return null;
+                            })}
+                            
+                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                              <a 
+                                className="page-link" 
+                                href="#" 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (currentPage < totalPages) paginate(currentPage + 1);
+                                }}
+                              >
+                                Next
+                              </a>
+                            </li>
+                          </ul>
+                        </nav>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Modal for Follow-up Details */}
+          {isModalOpen && selectedEnquiry && (
+            <div id="leadpreview-modal" className="modal fade" tabIndex="-1" role="dialog"
+              aria-labelledby="standard-modalLabel" aria-hidden="true">
+              <div className="modal-dialog modal-xl">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h4 className="modal-title" id="standard-modalLabel">Enquiry Details: {formatName(selectedEnquiry)}</h4>
+                    <button type="button" className="btn-close" data-bs-dismiss="modal"
+                      aria-label="Close"></button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="">
+                      {/* Enquiry Information */}
+                      <div className="row">
+                        <div className="col-xl-6">
+                          <h4 className="font-medium text-lg text-gray-800 mb-3 border-b pb-2">Contact Information</h4>
+                          <div className="space-y-2">
+                            <p><span className="font-medium">Name:</span> {formatName(selectedEnquiry)}</p>
+                            <p><span className="font-medium">Mobile:</span> {selectedEnquiry.enquiryId?.mobileNumber || "Not provided"}</p>
+                            <p><span className="font-medium">Email:</span> {selectedEnquiry.enquiryId?.email || "Not provided"}</p>
+                          </div>
+                        </div>
+                        <div className="col-xl-6">
+                          <h4 className="font-medium text-lg text-gray-800 mb-3 border-b pb-2">Course Information</h4>
+                          <div className="space-y-2">
+                            <p><span className="font-medium">Interested Course:</span> {selectedEnquiry.enquiryId?.interestedCourses || "Not specified"}</p>
+                            <p><span className="font-medium">Branch:</span> {getBranchName(selectedEnquiry.enquiryId?.branchId)}</p>
+                            <p><span className="font-medium">Current Telecaller:</span> {selectedEnquiry.telecallerName || selectedEnquiry.telecallerId || "Not assigned"}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Follow-up History */}
+                      <div className="card mt-5">
+                        <div className="card-header">
+                          <h4 className="font-medium text-lg text-gray-800">Follow-up History</h4>
+                        </div>
+                        <div className="card-body">
+                          <div className="table-responsive">
+                            <table className="table table-nowrap mb-0">
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Status</th>
+                                  <th>Notes</th>
+                                  <th>Telecaller</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                              {selectedEnquiry.allFollowUps && selectedEnquiry.allFollowUps.length > 0 ? (
+                                  selectedEnquiry.allFollowUps.map((followUp, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50">
+                                      <td>{formatDate(followUp.followUpDate)}</td>
+                                      <td>
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(followUp.status)}`}>
+                                          {followUp.status || "N/A"}
+                                        </span>
+                                      </td>
+                                      <td>{followUp.notes || "No notes"}</td>
+                                      <td>{followUp.telecallerName || followUp.telecallerId || "N/A"}</td>
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td colSpan="4" className="px-4 py-6 text-center text-gray-500">No follow-up history available.</td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default SuperAdminDashboard;

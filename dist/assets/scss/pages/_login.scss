@@ -1,0 +1,282 @@
+.account-page {
+    background: $white;
+}
+.form-wrap {
+    .form-wrap-icon {
+        position: relative;
+        i {
+            font-size: $font-size-18;
+            @include position(absolute,50%,15px,null,null);
+            transform: translateY(-50%);
+        }
+    }
+}
+.form-wrap-checkbox {
+    position: relative;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    justify-content: space-between;
+    -webkit-justify-content: space-between;
+    -ms-flex-pack: space-between;
+    margin-bottom: 20px;
+    .check {
+        display: -webkit-inline-box;
+        display: -ms-inline-flexbox;
+        display: inline-flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        cursor: pointer;
+        color: $gray-900;
+        margin-bottom: 0;
+        input {
+            display: none;
+            &:checked + .box {
+                background: $secondary;
+                &:after {
+                    top: 0;
+                }
+            }
+        }
+        .box {
+            width: 20px;
+            height: 20px;
+            display: block;
+            margin-right: 8px;
+            transition: all 1.1s cubic-bezier(.19,1,.22,1);
+            background: $light-200;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid $light-900;
+            border-radius: $border-radius-lg;
+            &:after {
+                width: 12px;
+                height: 6px;
+                content: "";
+                position: absolute;
+                border-left: 2px solid;
+                border-bottom: 2px solid;
+                border-color: $white;
+                transform: rotate(-45deg) translate3d(0, 0, 0);
+                transform-origin: center center;
+                transition: all 1.1s cubic-bezier(0.19, 1, 0.22, 1);
+                left: 0;
+                right: 0;
+                top: 200%;
+                bottom: 3px;
+                margin: auto;
+            }
+        }
+    }
+}
+.hover-a {
+    position: relative;
+    color: $purple;
+    &:after {
+        content:"";
+        height: 2px;
+        width: 100%;
+        background: $purple;
+        @include transform(scale(0));
+        @include transition(all 0.3s ease);
+        @include position(absolute,null,null,-3px,0);
+    }
+    &:hover:after {
+        @include transform(scale(1));
+    }
+    &:hover {
+        color: $purple;
+    }
+}
+.account-bg-01 {
+    background-image: url(../img/authentication/login-bg.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+.account-bg-02 {
+    background-image: url(../img/authentication/register-bg.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+.account-bg-03 {
+    background-image: url(../img/authentication/forgot-bg.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+.account-bg-04 {
+    background-image: url(../img/authentication/reset-bg.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+.link-hover {
+    position: relative;
+    color: $primary;
+    font-weight: $font-weight-medium;
+    &:after {
+        content:"";
+        height: 2px;
+        width: 100%;
+        background: $primary;
+        @include transform(scale(0));
+        @include transition(all 0.3s ease);
+        @include position(absolute,null,null,-3px,0);
+    }
+    &:hover:after {
+        @include transform(scale(1));
+    }
+    &:hover {
+        color: $primary !important;
+    }
+}
+.bg-backdrop {
+    background: #FFFFFFF2;
+    backdrop-filter: blur(10px);
+    @include respond-below(custom767) {
+        width: 100% !important;
+    }
+}
+.form-set-login.or-text {
+    max-width: 365px;
+     margin: auto;
+}
+.toggle-password {
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    color: $gray-900;
+    font-size: $font-size-18;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    align-items: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    justify-content: center;
+    -webkit-justify-content: center;
+    -ms-flex-pack: center;
+    @include rounded(50%);
+    @include transform(translateY(-50%));
+    @include position(absolute,50%,10px,null,null);
+    &:hover{
+        color: $primary;
+    }
+}
+.toggle-passwords {
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    color: $gray-900;
+    font-size: $font-size-18;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    align-items: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    justify-content: center;
+    -webkit-justify-content: center;
+    -ms-flex-pack: center;
+    @include rounded(50%);
+    @include transform(translateY(-50%));
+    @include position(absolute,50%,10px,null,null);
+    &:hover{
+        color:$primary;
+    }
+}
+.toggle-password-new {
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    color: $gray-900;
+    font-size: $font-size-18;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    align-items: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    justify-content: center;
+    -webkit-justify-content: center;
+    -ms-flex-pack: center;
+    @include rounded(50%);
+    @include transform(translateY(-50%));
+    @include position(absolute,50%,10px,null,null);
+    &:hover{
+        color:$primary;
+    }
+}
+.pass-group {
+    position: relative;
+    font-size: $font-size-base;
+}
+.form-set-login {
+    text-align: center;
+    position: relative;
+    color: $sub-title;
+    font-size: $font-size-base;
+    font-weight: $font-weight-normal;
+    margin-bottom: 23px;
+    h4 {
+        position: relative;
+        font-size: $font-size-base;
+        color: $text-color;
+        font-weight: $font-weight-bold;
+        &:after{
+            content: "";
+            background: $sub-title;
+            width:21px;
+            height: 1px;
+            @include position(absolute,10px,null,null,200px);
+            @include respond-below(custom991) {
+                height: 0px;
+            }
+        }
+        &:before{
+            content: "";
+            background:$sub-title;
+            width:21px;
+            height: 1px;
+            @include position(absolute,10px,200px,null,null);
+            @include respond-below(custom991) {
+                height: 0px;
+            }
+        }
+    }
+}
+.mw-450 {
+    max-width: 450px;
+}
+.wh-85 {
+    width: 85px;
+    height: 85px;
+    @include respond-below(custom575) {
+        width: 50px;
+        height: 50px;
+    }
+}
+.login-shapes {
+    position: relative;
+    @include respond-below(custom991) {
+        display: none;
+    }
+    .login-right-shape {
+        position: fixed;
+        top: 0;
+        left: 0;
+    }
+    .login-left-shape {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        line-height: 0;
+    }
+}
