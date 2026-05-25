@@ -2351,26 +2351,47 @@ app.put(
 
 
 //old api
+// app.get("/api/faculties", async (req, res) => {
+//   try {
+//     const { branchId } = req.query;
+
+//     let faculties;
+//     if (branchId) {
+//       // If branchId is provided, filter by branch
+//       faculties = await Faculty.find({ branchId });
+//     } else {
+//       // Otherwise return all faculties
+//       faculties = await Faculty.find();
+//     }
+
+//     res.json(faculties);
+//   } catch (error) {
+//     console.error("Error fetching faculties:", error);
+//     res.status(500).json({ error: "Failed to fetch faculties" });
+//   }
+// });
 app.get("/api/faculties", async (req, res) => {
   try {
     const { branchId } = req.query;
 
-    let faculties;
+    let filter = {};
+
     if (branchId) {
-      // If branchId is provided, filter by branch
-      faculties = await Faculty.find({ branchId });
-    } else {
-      // Otherwise return all faculties
-      faculties = await Faculty.find();
+      filter.branchId = branchId;
     }
 
+    const faculties = await Faculty.find(filter).lean();
+
     res.json(faculties);
+
   } catch (error) {
     console.error("Error fetching faculties:", error);
-    res.status(500).json({ error: "Failed to fetch faculties" });
+
+    res.status(500).json({
+      error: "Failed to fetch faculties"
+    });
   }
 });
-
 
 
 
@@ -5360,41 +5381,175 @@ app.delete("/api/enquiry/:id", authenticateToken, async (req, res) => {
   }
 });
 
+// app.get("/api/enquiries", authenticateToken, async (req, res) => {
+//   try {
+//     const query = buildBranchQuery(req.user, req.query.branchId);
+
+//     if (req.query.status) {
+//       query.status = req.query.status;
+//     }
+//     if (req.query.dateFrom || req.query.dateTo) {
+//       query.createdAt = {};
+//       if (req.query.dateFrom) query.createdAt.$gte = new Date(req.query.dateFrom);
+//       if (req.query.dateTo) query.createdAt.$lte = new Date(req.query.dateTo);
+//     }
+
+//     const all = String(req.query.all) === 'true';
+//     const page = Math.max(Number(req.query.page) || 1, 1);
+//     const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+//     const skip = (page - 1) * limit;
+
+//     const baseQuery = Enquiry.find(query)
+//       .select('firstname lastname mobileNumber status assignedTo branchId createdAt formatting qualification ModeofLearning CurrentOccupationStatus state referralSource joiningPlan followUps')
+//       .populate({ path: 'courseId', select: 'CourseName' })
+//       .populate({ path: 'interestedSubjects', select: 'SubjectName' })
+//       .populate({ path: 'MasterBranchID', select: 'MasterBranchName' })
+//       .populate({ path: 'assignedTo', select: 'firstName lastName email' })
+//       .lean();
+
+//     const [enquiries, total] = await Promise.all([
+//       all ? baseQuery : baseQuery.skip(skip).limit(limit),
+//       Enquiry.countDocuments(query),
+//     ]);
+
+//     res.json({ total, page, limit: all ? total : limit, enquiries });
+//   } catch (error) {
+//     console.error('Error fetching enquiries:', error);
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// });
+
+
 app.get("/api/enquiries", authenticateToken, async (req, res) => {
   try {
-    const query = buildBranchQuery(req.user, req.query.branchId);
+    // Build branch query
+    const query = buildBranchQuery(
+      req.user,
+      req.query.branchId
+    );
 
+    // Status filter
     if (req.query.status) {
       query.status = req.query.status;
     }
+
+    // Date filter
     if (req.query.dateFrom || req.query.dateTo) {
       query.createdAt = {};
-      if (req.query.dateFrom) query.createdAt.$gte = new Date(req.query.dateFrom);
-      if (req.query.dateTo) query.createdAt.$lte = new Date(req.query.dateTo);
+
+      if (req.query.dateFrom) {
+        query.createdAt.$gte = new Date(
+          req.query.dateFrom
+        );
+      }
+
+      if (req.query.dateTo) {
+        query.createdAt.$lte = new Date(
+          req.query.dateTo
+        );
+      }
     }
 
-    const all = String(req.query.all) === 'true';
-    const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    // Pagination
+    const all = String(req.query.all) === "true";
+
+    const page = Math.max(
+      Number(req.query.page) || 1,
+      1
+    );
+
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 20, 1),
+      100
+    );
+
     const skip = (page - 1) * limit;
 
+    // Base Query
     const baseQuery = Enquiry.find(query)
-      .select('firstname lastname mobileNumber status assignedTo branchId createdAt formatting qualification ModeofLearning CurrentOccupationStatus state referralSource joiningPlan followUps')
-      .populate({ path: 'courseId', select: 'CourseName' })
-      .populate({ path: 'interestedSubjects', select: 'SubjectName' })
-      .populate({ path: 'MasterBranchID', select: 'MasterBranchName' })
-      .populate({ path: 'assignedTo', select: 'firstName lastName email' })
+
+      // IMPORTANT: only required fields
+      .select(`
+        firstname
+        lastname
+        mobileNumber
+        status
+        assignedTo
+        branchId
+        createdAt
+        formatting
+        qualification
+        ModeofLearning
+        CurrentOccupationStatus
+        state
+        referralSource
+        joiningPlan
+        followUps
+        courseId
+        interestedSubjects
+        MasterBranchID
+      `)
+
+      // Course
+      .populate({
+        path: "courseId",
+        select: "CourseName",
+        options: { lean: true }
+      })
+
+      // Subjects
+      .populate({
+        path: "interestedSubjects",
+        select: "SubjectName",
+        options: { lean: true }
+      })
+
+      // Master Branch
+      .populate({
+        path: "MasterBranchID",
+        select: "MasterBranchName",
+        options: { lean: true }
+      })
+
+      // Assigned Telecaller
+      .populate({
+        path: "assignedTo",
+        select: "firstName lastName email",
+        options: { lean: true }
+      })
+
+      // PERFORMANCE BOOST
+      .sort({ createdAt: -1 })
+
+      // PERFORMANCE BOOST
       .lean();
 
+    // Run queries in parallel
     const [enquiries, total] = await Promise.all([
-      all ? baseQuery : baseQuery.skip(skip).limit(limit),
+      all
+        ? baseQuery
+        : baseQuery.skip(skip).limit(limit),
+
       Enquiry.countDocuments(query),
     ]);
 
-    res.json({ total, page, limit: all ? total : limit, enquiries });
+    // Response
+    res.json({
+      total,
+      page,
+      limit: all ? total : limit,
+      enquiries,
+    });
+
   } catch (error) {
-    console.error('Error fetching enquiries:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error(
+      "Error fetching enquiries:",
+      error
+    );
+
+    res.status(500).json({
+      error: "Server error",
+    });
   }
 });
 app.get("/api/old/enquiries", async (req, res) => {
@@ -6023,99 +6178,195 @@ app.get("/api/followups/:enquiryId", async (req, res) => {
 //   }
 // });
 
+// app.get("/api/followups", async (req, res) => {
+//   try {
+//     const { branchId, includeCourseDetails } = req.query;
+
+//     let filter = { role: { $in: ["Telecaller"] } }; // Only telecallers
+//     if (branchId) {
+//       filter.branchId = branchId;
+//     }
+
+//     const telecallers = await Faculty.find(filter)
+   
+//       .populate({
+//         path: "assignedEnquiries",
+//         select: "firstname lastname mobileNumber interestedCourses branchId createdAt email _id courseId interestedSubjects MasterBranchID",
+//         populate: [
+//           includeCourseDetails === "true" ? {
+//             path: "courseId",
+//             model: "Course",
+//             select: "CourseName courseCode CourseID"
+//           } : null,
+//           {
+//             path: "interestedSubjects",
+//             model: "Subject",
+//             select: "SubjectName SubjectId" // Adjust field names as per your Subject schema
+//           }
+//         ].filter(Boolean)
+//       })
+//       .populate({
+//         path: "followUps.enquiryId",
+//         model: "Enquiry",
+//         select: "firstname lastname mobileNumber interestedCourses branchId createdAt email courseId interestedSubjects",
+//         populate: [
+//           includeCourseDetails === "true" ? {
+//             path: "courseId",
+//             model: "Course",
+//             select: "CourseName CourseID",
+//             MasterBranchID:"MasterBranchID",
+//           } : null,
+//           {
+//             path: "interestedSubjects",
+//             model: "Subject",
+//             select: "SubjectName SubjectId" // Again, adjust to your schema
+//           }
+//         ].filter(Boolean)
+//       })
+//       .select("assignedEnquiries followUps branchId firstName lastName _id");
+
+//     // Format the response for easier consumption on frontend
+//     const formattedResponse = telecallers.map(telecaller => {
+//       return {
+//         _id: telecaller._id,
+//         firstName: telecaller.firstName,
+//         lastName: telecaller.lastName,
+//         branchId: telecaller.branchId,
+//         assignedEnquiries: telecaller.assignedEnquiries,
+//         followUps: telecaller.followUps.map(followUp => {
+//           // Make sure we have all necessary data
+//           if (followUp.enquiryId) {
+//             return {
+//               ...followUp.toObject(),
+//               enquiryDetails: {
+//                 _id: followUp.enquiryId._id,
+//                 firstname: followUp.enquiryId.firstname,
+//                 lastname: followUp.enquiryId.lastname,
+//                 email: followUp.enquiryId.email,
+//                 mobileNumber: followUp.enquiryId.mobileNumber,
+//                 branchId: followUp.enquiryId.branchId,
+//                 createdAt: followUp.enquiryId.createdAt,
+//                 MasterBranchID: followUp.enquiryId.MasterBranchID,
+//                 // Include course details if available
+//                 courses: Array.isArray(followUp.enquiryId.courseId)
+//   ? followUp.enquiryId.courseId.map(course => ({
+//       id: course._id,
+//       name: course.CourseName,
+//       code: course.CourseID
+//     }))
+//   : []
+
+//               }
+//             };
+//           }
+//           return followUp;
+//         })
+//       };
+//     });
+
+//     console.log("Formatted telecallers data for frontend", formattedResponse);
+//     res.json({ followUps: formattedResponse });
+//   } catch (error) {
+//     console.error("Error fetching follow-ups:", error);
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// });
 app.get("/api/followups", async (req, res) => {
   try {
     const { branchId, includeCourseDetails } = req.query;
 
-    let filter = { role: { $in: ["Telecaller"] } }; // Only telecallers
+    // Filter only telecallers
+    let filter = {
+      role: { $in: ["Telecaller"] }
+    };
+
+    // Branch filter
     if (branchId) {
       filter.branchId = branchId;
     }
 
+    // Optimized query
     const telecallers = await Faculty.find(filter)
-   
+      .lean()
+
+      // Assigned Enquiries
       .populate({
         path: "assignedEnquiries",
-        select: "firstname lastname mobileNumber interestedCourses branchId createdAt email _id courseId interestedSubjects MasterBranchID",
+
+        options: { lean: true },
+
+        select:
+          "firstname lastname mobileNumber interestedCourses branchId createdAt email _id courseId interestedSubjects MasterBranchID assignedTo assignedToName",
+
         populate: [
-          includeCourseDetails === "true" ? {
-            path: "courseId",
-            model: "Course",
-            select: "CourseName courseCode CourseID"
-          } : null,
+          includeCourseDetails === "true"
+            ? {
+                path: "courseId",
+                model: "Course",
+                select: "CourseName courseCode CourseID"
+              }
+            : null,
+
           {
             path: "interestedSubjects",
             model: "Subject",
-            select: "SubjectName SubjectId" // Adjust field names as per your Subject schema
+            select: "SubjectName SubjectId"
           }
         ].filter(Boolean)
       })
+
+      // Followup Enquiries
       .populate({
         path: "followUps.enquiryId",
+
         model: "Enquiry",
-        select: "firstname lastname mobileNumber interestedCourses branchId createdAt email courseId interestedSubjects",
+
+        options: { lean: true },
+
+        select:
+          "firstname lastname mobileNumber interestedCourses branchId createdAt email courseId interestedSubjects MasterBranchID assignedTo assignedToName",
+
         populate: [
-          includeCourseDetails === "true" ? {
-            path: "courseId",
-            model: "Course",
-            select: "CourseName CourseID",
-            MasterBranchID:"MasterBranchID",
-          } : null,
+          includeCourseDetails === "true"
+            ? {
+                path: "courseId",
+                model: "Course",
+                select: "CourseName CourseID"
+              }
+            : null,
+
           {
             path: "interestedSubjects",
             model: "Subject",
-            select: "SubjectName SubjectId" // Again, adjust to your schema
+            select: "SubjectName SubjectId"
           }
         ].filter(Boolean)
       })
-      .select("assignedEnquiries followUps branchId firstName lastName _id");
 
-    // Format the response for easier consumption on frontend
-    const formattedResponse = telecallers.map(telecaller => {
-      return {
-        _id: telecaller._id,
-        firstName: telecaller.firstName,
-        lastName: telecaller.lastName,
-        branchId: telecaller.branchId,
-        assignedEnquiries: telecaller.assignedEnquiries,
-        followUps: telecaller.followUps.map(followUp => {
-          // Make sure we have all necessary data
-          if (followUp.enquiryId) {
-            return {
-              ...followUp.toObject(),
-              enquiryDetails: {
-                _id: followUp.enquiryId._id,
-                firstname: followUp.enquiryId.firstname,
-                lastname: followUp.enquiryId.lastname,
-                email: followUp.enquiryId.email,
-                mobileNumber: followUp.enquiryId.mobileNumber,
-                branchId: followUp.enquiryId.branchId,
-                createdAt: followUp.enquiryId.createdAt,
-                MasterBranchID: followUp.enquiryId.MasterBranchID,
-                // Include course details if available
-                courses: Array.isArray(followUp.enquiryId.courseId)
-  ? followUp.enquiryId.courseId.map(course => ({
-      id: course._id,
-      name: course.CourseName,
-      code: course.CourseID
-    }))
-  : []
+      // Only required telecaller fields
+      .select(
+        "assignedEnquiries followUps branchId firstName lastName _id"
+      );
 
-              }
-            };
-          }
-          return followUp;
-        })
-      };
+    // Response
+    res.json({
+      followUps: telecallers
     });
 
-    console.log("Formatted telecallers data for frontend", formattedResponse);
-    res.json({ followUps: formattedResponse });
   } catch (error) {
     console.error("Error fetching follow-ups:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+
+    res.status(500).json({
+      message: "Server error",
+      error: error.message
+    });
   }
 });
+
+
+
+
+
 app.put("/api/reassign-enquiry", async (req, res) => {
   try {
     const { enquiryId, oldTelecallerId, newTelecallerId } = req.body;
@@ -6754,73 +7005,211 @@ const mailOptions = {
 return transporter.sendMail(mailOptions);
 }
 
+// app.get("/api/registrations", async (req, res) => {
+//   try {
+//     const query = buildBranchQuery(req.user, req.query.branchId);
+//     if (req.query.masterBranchId) {
+//       query.masterBranchId = req.query.masterBranchId;
+//     }
+//     if (req.query.regStatus) {
+//       query.regStatus = req.query.regStatus;
+//     }
+
+//     const details = String(req.query.details) === 'true';
+//     const all = String(req.query.all) === 'true';
+//     const page = Math.max(Number(req.query.page) || 1, 1);
+//     const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+//     const skip = (page - 1) * limit;
+
+//     const baseQuery = Registration.find(query).sort({ createdAt: -1 });
+
+//     if (!details) {
+// baseQuery.select(`
+//    regid
+//   fName
+//   lName
+//   email
+//   phone
+//   qualification
+//   otherQualification
+//   education
+//   highestQualification
+//   courseName
+//   regStatus
+//   branchId
+//   masterBranchId
+//   singlePaymentStatus
+//   selectedSubjects
+//   courseId
+//   courseTypeId
+//   paymentsPlan
+//   offeredFee
+//   totalPaid
+//   createdAt
+//   approvedAt
+// `);    }
+
+//     if (!all) {
+//       baseQuery.skip(skip).limit(limit);
+//     }
+
+//     baseQuery
+//   .populate('masterBranchId', 'MasterBranchName')
+//   .populate('courseTypeId', 'CourseTypeName')
+//   .populate({
+//     path: 'selectedSubjects',
+//     model: 'Subject',
+//     select: 'SubjectName SubjectId SubjectCaption SubjectDesc'
+//   });
+
+//     baseQuery.lean();
+//     const [registrations, total] = await Promise.all([
+//       baseQuery,
+//       Registration.countDocuments(query),
+//     ]);
+
+//     res.json({ total, page, limit: all ? total : limit, registrations });
+//   } catch (error) {
+//     console.error("Error fetching registrations:", error);
+//     res.status(500).json({ message: "Error fetching registrations", error });
+//   }
+// });
+
+
+
+
 app.get("/api/registrations", async (req, res) => {
   try {
-    const query = buildBranchQuery(req.user, req.query.branchId);
+    // Build query
+    const query = buildBranchQuery(
+      req.user,
+      req.query.branchId
+    );
+
+    // Master branch filter
     if (req.query.masterBranchId) {
-      query.masterBranchId = req.query.masterBranchId;
+      query.masterBranchId =
+        req.query.masterBranchId;
     }
+
+    // Registration status filter
     if (req.query.regStatus) {
       query.regStatus = req.query.regStatus;
     }
 
-    const details = String(req.query.details) === 'true';
-    const all = String(req.query.all) === 'true';
-    const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    // Query params
+    const details =
+      String(req.query.details) === "true";
+
+    const all =
+      String(req.query.all) === "true";
+
+    const page = Math.max(
+      Number(req.query.page) || 1,
+      1
+    );
+
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 20, 1),
+      100
+    );
+
     const skip = (page - 1) * limit;
 
-    const baseQuery = Registration.find(query).sort({ createdAt: -1 });
+    // Base query
+    const baseQuery = Registration.find(query)
 
+      // PERFORMANCE BOOST
+      .sort({ createdAt: -1 })
+
+      // PERFORMANCE BOOST
+      .lean();
+
+    // Select only needed fields
     if (!details) {
-baseQuery.select(`
-   regid
-  fName
-  lName
-  email
-  phone
-  qualification
-  otherQualification
-  education
-  highestQualification
-  courseName
-  regStatus
-  branchId
-  masterBranchId
-  singlePaymentStatus
-  selectedSubjects
-  courseId
-  courseTypeId
-  paymentsPlan
-  offeredFee
-  totalPaid
-  createdAt
-  approvedAt
-`);    }
+      baseQuery.select(`
+        regid
+        fName
+        lName
+        email
+        phone
+        qualification
+        otherQualification
+        education
+        highestQualification
+        courseName
+        regStatus
+        branchId
+        masterBranchId
+        singlePaymentStatus
+        selectedSubjects
+        courseId
+        courseTypeId
+        paymentsPlan
+        offeredFee
+        totalPaid
+        createdAt
+        approvedAt
+      `);
+    }
 
+    // Pagination
     if (!all) {
       baseQuery.skip(skip).limit(limit);
     }
 
+    // Populates
     baseQuery
-  .populate('masterBranchId', 'MasterBranchName')
-  .populate('courseTypeId', 'CourseTypeName')
-  .populate({
-    path: 'selectedSubjects',
-    model: 'Subject',
-    select: 'SubjectName SubjectId SubjectCaption SubjectDesc'
-  });
 
-    baseQuery.lean();
-    const [registrations, total] = await Promise.all([
-      baseQuery,
-      Registration.countDocuments(query),
-    ]);
+      // Master Branch
+      .populate({
+        path: "masterBranchId",
+        select: "MasterBranchName",
+        options: { lean: true }
+      })
 
-    res.json({ total, page, limit: all ? total : limit, registrations });
+      // Course Type
+      .populate({
+        path: "courseTypeId",
+        select: "CourseTypeName",
+        options: { lean: true }
+      })
+
+      // Subjects
+      .populate({
+        path: "selectedSubjects",
+        model: "Subject",
+        select:
+          "SubjectName SubjectId SubjectCaption SubjectDesc",
+
+        options: { lean: true }
+      });
+
+    // Execute in parallel
+    const [registrations, total] =
+      await Promise.all([
+        baseQuery,
+        Registration.countDocuments(query),
+      ]);
+
+    // Response
+    res.json({
+      total,
+      page,
+      limit: all ? total : limit,
+      registrations,
+    });
+
   } catch (error) {
-    console.error("Error fetching registrations:", error);
-    res.status(500).json({ message: "Error fetching registrations", error });
+    console.error(
+      "Error fetching registrations:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Error fetching registrations",
+      error,
+    });
   }
 });
 
