@@ -84,7 +84,12 @@ const requireSuperAdmin = (req, res, next) => {
   }
   return next();
 };
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://excerpttech:excerpttech2021@cluster0.5vdeszu.mongodb.net/JBKCRMDB');
+mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://excerpttech:excerpttech2021@cluster0.5vdeszu.mongodb.net/JBKCRMDB', {
+  maxPoolSize: 20,
+  minPoolSize: 5,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+});
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
@@ -2380,7 +2385,9 @@ app.get("/api/faculties", async (req, res) => {
       filter.branchId = branchId;
     }
 
-    const faculties = await Faculty.find(filter).lean();
+    const faculties = await Faculty.find(filter)
+      .select('-Feedbacks -followUps -assignedEnquiries -documents -password -resetCode')
+      .lean();
 
     res.json(faculties);
 
@@ -5493,29 +5500,25 @@ app.get("/api/enquiries", authenticateToken, async (req, res) => {
       // Course
       .populate({
         path: "courseId",
-        select: "CourseName",
-        options: { lean: true }
+        select: "CourseName"
       })
 
       // Subjects
       .populate({
         path: "interestedSubjects",
-        select: "SubjectName",
-        options: { lean: true }
+        select: "SubjectName"
       })
 
       // Master Branch
       .populate({
         path: "MasterBranchID",
-        select: "MasterBranchName",
-        options: { lean: true }
+        select: "MasterBranchName"
       })
 
       // Assigned Telecaller
       .populate({
         path: "assignedTo",
-        select: "firstName lastName email",
-        options: { lean: true }
+        select: "firstName lastName email"
       })
 
       // PERFORMANCE BOOST
@@ -7164,25 +7167,20 @@ app.get("/api/registrations", async (req, res) => {
       // Master Branch
       .populate({
         path: "masterBranchId",
-        select: "MasterBranchName",
-        options: { lean: true }
+        select: "MasterBranchName"
       })
 
       // Course Type
       .populate({
         path: "courseTypeId",
-        select: "CourseTypeName",
-        options: { lean: true }
+        select: "CourseTypeName"
       })
 
       // Subjects
       .populate({
         path: "selectedSubjects",
         model: "Subject",
-        select:
-          "SubjectName SubjectId SubjectCaption SubjectDesc",
-
-        options: { lean: true }
+        select: "SubjectName SubjectId SubjectCaption SubjectDesc"
       });
 
     // Execute in parallel
