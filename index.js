@@ -16382,6 +16382,26 @@ app.get('/api/job/:jobId', async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // app.get('/api/faculty-performance', authenticateToken, async (req, res) => {
 //   try {
 //     // Fetch all faculty members with role 'Faculty'
@@ -16734,6 +16754,27 @@ app.get('/api/faculty-performance', async (req, res) => {
 // });
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //UPDATED
 app.get('/api/faculty-performance/:facultyId', async (req, res) => {
 
@@ -16952,6 +16993,487 @@ app.get('/api/faculty-performance/:facultyId', async (req, res) => {
 
   }
 
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ============================================================
+// PASTE THIS BLOCK IN index.js BEFORE these two lines:
+//
+//   app.use(express.static(path.join(__dirname, 'dist')));
+//   app.get('*', (req, res) => { ... });
+//
+// It MUST be before the '*' catch-all route or it will never
+// be reached (the catch-all swallows all requests first).
+// ============================================================
+
+app.get("/api/application-processing/registrations", async (req, res) => {
+  try {
+    const {
+      page: pageParam  = 1,
+      limit: limitParam = 10,
+      search           = "",
+      regStatus        = "All",
+      masterBranch     = "All",
+      branchId         = "",
+      role             = "",
+    } = req.query;
+
+    const page  = Math.max(Number(pageParam), 1);
+    const limit = Math.min(Math.max(Number(limitParam), 1), 50);
+    const skip  = (page - 1) * limit;
+
+    // ── Build filter ──────────────────────────────────────────
+    const filter = {};
+
+    if (role !== "SuperAdmin" && branchId) {
+      filter.branchId = branchId;
+    }
+
+    if (regStatus && regStatus !== "All") {
+      filter.regStatus = regStatus;
+    }
+
+    if (search && search.trim()) {
+      const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+      filter.$or = [
+        { fName: rx },
+        { lName: rx },
+        { regid: rx },
+        { email: rx },
+        { phone: rx },
+      ];
+    }
+
+    // ── Fetch registrations + count in parallel ───────────────
+    const [registrations, total] = await Promise.all([
+      Registration.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select(
+          "regid fName lName email phone qualification otherQualification " +
+          "education highestQualification courseName regStatus branchId " +
+          "masterBranchId selectedSubjects courseId courseTypeId " +
+          "paymentsPlan offeredFee courseFee feeType installmentCount " +
+          "totalPaid singlePaymentStatus approvedAt createdAt " +
+          "guardianName contactAddress state city collegeName " +
+          "statusUpdatedAt pendingAt holdAt rejectedAt"
+        )
+        .populate({ path: "masterBranchId",    select: "MasterBranchName BranchesID" })
+        .populate({ path: "selectedSubjects",  model: "Subject", select: "SubjectName SubjectId" })
+        .lean(),
+
+      Registration.countDocuments(filter),
+    ]);
+
+    // ── masterBranch name post-filter (after populate) ────────
+    let finalRegistrations = registrations;
+    let finalTotal = total;
+
+    if (masterBranch && masterBranch !== "All") {
+      finalRegistrations = registrations.filter(
+        (r) => r.masterBranchId?.MasterBranchName === masterBranch
+      );
+      finalTotal = finalRegistrations.length;
+    }
+
+    // ── Fetch all dropdown data in parallel ───────────────────
+    const [masterBranches, branches, courseTypes, courses, subjects] =
+      await Promise.all([
+        MasterBranch.find({}).select("MasterBranchName BranchesID").lean(),
+        Branch.find({}).select("branchId branchName location").lean(),
+        CourseType.find({}).select("CourseTypeName MasterBranchID").lean(),
+        Course.find({}).select("CourseName courseName name MasterBranchID CourseTypeID").lean(),
+        Subject.find({}).select("SubjectName SubjectId coursesids").lean(),
+      ]);
+
+    res.json({
+      registrations: finalRegistrations,
+      total:         finalTotal,
+      page,
+      limit,
+      totalPages:    Math.ceil(finalTotal / limit) || 1,
+      dropdowns: { masterBranches, branches, courseTypes, courses, subjects },
+    });
+
+  } catch (error) {
+    console.error("❌ /api/application-processing/registrations error:", error);
+    res.status(500).json({ message: "Error fetching data", error: error.message });
+  }
+});
+
+
+
+
+// ============================================================
+// PASTE THIS BLOCK IN index.js BEFORE:
+//   app.use(express.static(...))
+//   app.get('*', ...)
+//
+// NEW DEDICATED API FOR StudentDatabase page
+// Route: GET /api/student-database/registrations
+// ============================================================
+
+/**
+ * GET /api/student-database/registrations
+ *
+ * Returns paginated APPROVED registrations with:
+ *   - batchName already joined server-side (no client-side loop)
+ *   - courses + batches dropdown data bundled in ONE call
+ *
+ * Query params:
+ *   page         - page number (default 1)
+ *   limit        - rows per page (default 10, max 50)
+ *   search       - searches fName, lName, regid, email, phone
+ *   courseName   - course filter (or "All")
+ *   batchName    - batch filter (or "All")
+ *   branchId     - branch filter for non-SuperAdmin
+ *   role         - "SuperAdmin" or anything else
+ */
+app.get("/api/student-database/registrations", async (req, res) => {
+  try {
+    const {
+      page: pageParam   = 1,
+      limit: limitParam = 10,
+      search            = "",
+      courseName        = "All",
+      batchName         = "All",
+      branchId          = "",
+      role              = "",
+    } = req.query;
+
+    const page  = Math.max(Number(pageParam), 1);
+    const limit = Math.min(Math.max(Number(limitParam), 1), 50);
+    const skip  = (page - 1) * limit;
+
+    // ── 1. Build registration filter ─────────────────────────
+    const filter = { regStatus: "Approved" };
+
+    if (role !== "SuperAdmin" && branchId) {
+      filter.branchId = branchId;
+    }
+
+    if (courseName && courseName !== "All") {
+      filter.courseName = courseName;
+    }
+
+    if (search && search.trim()) {
+      const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+      filter.$or = [
+        { fName: rx },
+        { lName: rx },
+        { regid: rx },
+        { email: rx },
+        { phone: rx },
+      ];
+    }
+
+    // ── 2. Fetch registrations + total + batches in parallel ──
+    // Batches: only fetch minimal fields needed (no populate of students)
+    const [registrations, total, allBatches, allCourses, allBranches] = await Promise.all([
+      Registration.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select(
+          "regid fName lName email phone courseName branchId masterBranchId " +
+          "qualification otherQualification collegeName guardianName " +
+          "contactAddress state city joiningDate feeType courseFee " +
+          "installmentCount paymentsPlan offeredFee approvedAt createdAt"
+        )
+        .lean(),
+
+      Registration.countDocuments(filter),
+
+      // Get only _id, batchName, branchId, assignedStudents (as IDs only, no populate)
+      Batch.find(
+        role !== "SuperAdmin" && branchId ? { branchId } : {}
+      )
+        .select("batchName branchId assignedStudents status")
+        .lean(),
+
+      Course.find({}).select("CourseName courseName name").lean(),
+      Branch.find({}).select("branchId branchName location").lean(),
+    ]);
+
+    // ── 3. Join batchName server-side (O(n) lookup via Map) ───
+    // Build a Map: studentId (string) → batchName
+    const studentBatchMap = new Map();
+    for (const batch of allBatches) {
+      for (const studentId of batch.assignedStudents) {
+        studentBatchMap.set(String(studentId), batch.batchName);
+      }
+    }
+
+    const registrationsWithBatch = registrations.map((reg) => ({
+      ...reg,
+      batchName: studentBatchMap.get(String(reg._id)) || "Not Assigned",
+    }));
+
+    // ── 4. batchName filter (post-join) ───────────────────────
+    // Only filter if a specific batch was requested
+    let finalRegistrations = registrationsWithBatch;
+    let finalTotal = total;
+
+    if (batchName && batchName !== "All") {
+      finalRegistrations = registrationsWithBatch.filter(
+        (r) => r.batchName === batchName
+      );
+      finalTotal = finalRegistrations.length;
+    }
+
+    // ── 5. Build unique batch names list for dropdown ─────────
+    const batchDropdown = allBatches.map((b) => ({
+      _id:       b._id,
+      batchName: b.batchName,
+      branchId:  b.branchId,
+    }));
+
+    res.json({
+      registrations: finalRegistrations,
+      total:         finalTotal,
+      page,
+      limit,
+      totalPages:    Math.ceil(finalTotal / limit) || 1,
+      dropdowns: {
+        courses:  allCourses,
+        batches:  batchDropdown,
+        branches: allBranches,
+      },
+    });
+
+  } catch (error) {
+    console.error("❌ /api/student-database/registrations error:", error);
+    res.status(500).json({ message: "Error fetching data", error: error.message });
+  }
+});
+
+
+
+
+// ============================================================
+//  ADD THIS ROUTE TO YOUR index.js (backend)
+//  Dedicated endpoint for the Register Report page only.
+//  Single DB round-trip: returns registrations + branches +
+//  courses in one response so the frontend needs zero extra calls.
+//  Does NOT touch the existing /api/registrations route at all.
+// ============================================================
+
+app.get("/api/report/registrations", async (req, res) => {
+  try {
+    // ── Query filters (all optional) ──────────────────────────
+    const query = {};
+
+    // Date range filter (do it in DB, not frontend)
+    if (req.query.fromDate || req.query.toDate) {
+      query.createdAt = {};
+      if (req.query.fromDate) {
+        const from = new Date(req.query.fromDate);
+        from.setHours(0, 0, 0, 0);
+        query.createdAt.$gte = from;
+      }
+      if (req.query.toDate) {
+        const to = new Date(req.query.toDate);
+        to.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = to;
+      }
+    }
+
+    if (req.query.branchId) {
+      query.branchId = req.query.branchId;
+    }
+
+    if (req.query.courseName) {
+      query.courseName = req.query.courseName;
+    }
+
+    if (req.query.masterBranchId) {
+      query.masterBranchId = new mongoose.Types.ObjectId(req.query.masterBranchId);
+    }
+
+    // ── Run all 3 queries in parallel ─────────────────────────
+    const [registrations, branches, courses] = await Promise.all([
+
+      // Only select the 6 fields the table actually displays
+      Registration.find(query)
+        .select("regid fName lName phone email courseName createdAt branchId masterBranchId")
+        .sort({ createdAt: -1 })
+        .lean(),
+
+      // Branches — just name + id for the filter dropdown
+      Branch.find({})
+        .select("branchId branchName")
+        .lean(),
+
+      // Courses — just name for the filter dropdown
+      mongoose.model("Course").find({})
+        .select("CourseName MasterBranchID")
+        .lean(),
+    ]);
+
+    return res.json({
+      success: true,
+      registrations,
+      branches,
+      courses,
+      total: registrations.length,
+    });
+
+  } catch (error) {
+    console.error("Error fetching register report data:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching register report data",
+      error: error.message,
+    });
+  }
+});
+
+
+// ============================================================
+//  ADD THIS ROUTE TO YOUR index.js (backend)
+//  Dedicated endpoint for the Walk-in Report page only.
+//  Single DB round-trip: returns enquiries + branches together.
+//  Does NOT touch the existing /api/enquiries route at all.
+// ============================================================
+
+app.get("/api/report/walkins", async (req, res) => {
+  try {
+    // ── Optional query-time filters ───────────────────────────
+    const query = {};
+
+    if (req.query.branchId) {
+      query.branchId = req.query.branchId;
+    }
+
+    if (req.query.fromDate || req.query.toDate) {
+      query.createdAt = {};
+      if (req.query.fromDate) {
+        const from = new Date(req.query.fromDate);
+        from.setHours(0, 0, 0, 0);
+        query.createdAt.$gte = from;
+      }
+      if (req.query.toDate) {
+        const to = new Date(req.query.toDate);
+        to.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = to;
+      }
+    }
+
+    // ── Run both queries in parallel ─────────────────────────
+    const [walkins, branches] = await Promise.all([
+
+      // Only the 6 fields the table actually shows — zero populates
+      Enquiry.find(query)
+        .select("branchId firstname lastname mobileNumber email createdAt status")
+        .sort({ createdAt: -1 })
+        .lean(),
+
+      // Branches for the filter dropdown
+      Branch.find({})
+        .select("branchId branchName")
+        .lean(),
+    ]);
+
+    return res.json({
+      success: true,
+      walkins,
+      branches,
+      total: walkins.length,
+    });
+
+  } catch (error) {
+    console.error("Error fetching walkin report data:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching walkin report data",
+      error: error.message,
+    });
+  }
+});
+
+
+
+
+// ============================================================
+//  ADD THIS ROUTE TO YOUR index.js (backend)
+//  Dedicated bootstrap endpoint for the FacultyForm page.
+//  Replaces 6 separate API calls with 1 parallel batch.
+//  Does NOT touch any existing routes.
+// ============================================================
+
+app.get("/api/faculty-form/bootstrap", async (req, res) => {
+  try {
+    const { branchId } = req.query; // optional — for non-SuperAdmin users
+
+    const facultyFilter = branchId ? { branchId } : {};
+
+    // ── Run all 5 queries in parallel ─────────────────────────
+    const [faculties, masterBranches, branches, subjects, roles, departments] =
+      await Promise.all([
+
+        // Faculties — only the fields needed for the table + edit form
+        Faculty.find(facultyFilter)
+          .select(
+            "employeeId firstName lastName email phone experience joinDate role department qualification otherQualification dob address gender employmentType status salary subjects branchId MasterBranchID profilePhoto"
+          )
+          .lean(),
+
+        // Master branches with their branch IDs populated (needed for dropdown + branch mapping)
+        MasterBranch.find()
+          .populate("BranchesID", "branchId branchName _id")
+          .lean(),
+
+        // All branches (for SuperAdmin branch options)
+        Branch.find()
+          .select("branchId branchName _id")
+          .lean(),
+
+        // Subjects (for subject assignment when role=Faculty)
+        Subject.find()
+          .select("SubjectId SubjectName MasterBranchID subjectCode _id")
+          .lean(),
+
+        // Roles (for the role checkboxes)
+        Role.find()
+          .select("roleId roleName _id")
+          .lean(),
+
+        // Departments (for the department dropdown)
+        Department.find()
+          .select("dep_id departmentName _id")
+          .lean(),
+      ]);
+
+    return res.json({
+      success: true,
+      faculties,
+      masterBranches,
+      branches,
+      subjects,
+      roles,
+      departments,
+    });
+
+  } catch (error) {
+    console.error("Error fetching faculty form bootstrap data:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching faculty form data",
+      error: error.message,
+    });
+  }
 });
 
 app.use(express.static(path.join(__dirname, 'dist')));
