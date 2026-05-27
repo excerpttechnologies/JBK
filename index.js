@@ -17476,6 +17476,149 @@ app.get("/api/faculty-form/bootstrap", async (req, res) => {
   }
 });
 
+
+
+
+
+
+// ============================================================
+// REPLACE your existing app.get("/api/followups", ...) route
+// (currently at line 6274 in your index.js) with this version.
+//
+// ROOT CAUSE OF SLOWNESS:
+// The old route did 4-level nested populate:
+//   Faculty → assignedEnquiries → courseId → (done)
+//                               → interestedSubjects → (done)
+//             followUps.enquiryId → courseId → (done)
+//                                → interestedSubjects → (done)
+//
+// Mongoose executes a SEPARATE DB query for each populate level.
+// With 10 telecallers × 50 enquiries = potentially 500+ DB round
+// trips just to load this one page.
+//
+// FIX: Fetch Faculty + Enquiries + Courses + Subjects in 4 parallel
+// queries, then join them in JS (single pass). Total = 4 DB calls.
+// ============================================================
+
+app.get("/api/followupsaaa", authenticateToken, async (req, res) => {
+  try {
+    const { branchId, includeCourseDetails } = req.query;
+    const withCourses = includeCourseDetails === "true";
+
+    // ── 1. Build filter ───────────────────────────────────────
+    const facultyFilter = { role: { $in: ["Telecaller"] } };
+    if (branchId) facultyFilter.branchId = branchId;
+
+    // ── 2. Fetch telecallers (no populate — just raw IDs) ─────
+    const telecallers = await Faculty.find(facultyFilter)
+      .select("firstName lastName branchId assignedEnquiries followUps _id")
+      .lean();
+
+    if (!telecallers.length) {
+      return res.json({ followUps: [] });
+    }
+
+    // ── 3. Collect all enquiry IDs we need ────────────────────
+    const enquiryIdSet = new Set();
+
+    telecallers.forEach(tc => {
+      (tc.assignedEnquiries || []).forEach(id => enquiryIdSet.add(String(id)));
+      (tc.followUps || []).forEach(fu => {
+        if (fu.enquiryId) enquiryIdSet.add(String(fu.enquiryId));
+      });
+    });
+
+    const allEnquiryIds = [...enquiryIdSet];
+
+    if (!allEnquiryIds.length) {
+      return res.json({ followUps: telecallers.map(tc => ({
+        ...tc, assignedEnquiries: [], followUps: []
+      })) });
+    }
+
+    // ── 4. Fetch all needed enquiries in ONE query ────────────
+    const enquiries = await Enquiry.find({ _id: { $in: allEnquiryIds } })
+      .select(
+        "firstname lastname mobileNumber interestedCourses branchId " +
+        "createdAt email courseId interestedSubjects MasterBranchID " +
+        "assignedTo assignedToName _id"
+      )
+      .lean();
+
+    // ── 5. Optionally fetch courses + subjects in parallel ────
+    // Collect all courseId and subjectId values from enquiries
+    const courseIdSet  = new Set();
+    const subjectIdSet = new Set();
+
+    enquiries.forEach(enq => {
+      const cids = Array.isArray(enq.courseId) ? enq.courseId : (enq.courseId ? [enq.courseId] : []);
+      cids.forEach(id => courseIdSet.add(String(id)));
+
+      const sids = Array.isArray(enq.interestedSubjects) ? enq.interestedSubjects : [];
+      sids.forEach(id => subjectIdSet.add(String(id)));
+    });
+
+    // Parallel fetch only if we have IDs to look up
+    const [courses, subjects] = await Promise.all([
+      withCourses && courseIdSet.size > 0
+        ? Course.find({ _id: { $in: [...courseIdSet] } })
+            .select("CourseName courseCode CourseID _id").lean()
+        : Promise.resolve([]),
+
+      subjectIdSet.size > 0
+        ? Subject.find({ _id: { $in: [...subjectIdSet] } })
+            .select("SubjectName SubjectId _id").lean()
+        : Promise.resolve([]),
+    ]);
+
+    // ── 6. Build lookup Maps for O(1) joins ───────────────────
+    const enquiryMap = new Map(enquiries.map(e => [String(e._id), e]));
+    const courseMap  = new Map(courses.map(c  => [String(c._id), c]));
+    const subjectMap = new Map(subjects.map(s  => [String(s._id), s]));
+
+    // ── 7. Hydrate enquiries with their course/subject data ───
+    const hydrateEnquiry = (enq) => {
+      if (!enq) return null;
+
+      const hydratedCourses = withCourses
+        ? (Array.isArray(enq.courseId) ? enq.courseId : (enq.courseId ? [enq.courseId] : []))
+            .map(id => courseMap.get(String(id))).filter(Boolean)
+        : enq.courseId;
+
+      const hydratedSubjects = (Array.isArray(enq.interestedSubjects) ? enq.interestedSubjects : [])
+        .map(id => subjectMap.get(String(id))).filter(Boolean);
+
+      return {
+        ...enq,
+        courseId:           hydratedCourses,
+        interestedSubjects: hydratedSubjects,
+      };
+    };
+
+    // ── 8. Rebuild telecaller objects with hydrated data ──────
+    const result = telecallers.map(tc => ({
+      ...tc,
+
+      assignedEnquiries: (tc.assignedEnquiries || [])
+        .map(id => hydrateEnquiry(enquiryMap.get(String(id))))
+        .filter(Boolean),
+
+      followUps: (tc.followUps || []).map(fu => ({
+        ...fu,
+        enquiryId: hydrateEnquiry(enquiryMap.get(String(fu.enquiryId))),
+      })).filter(fu => fu.enquiryId), // drop orphaned follow-ups
+    }));
+
+    res.json({ followUps: result });
+
+  } catch (error) {
+    console.error("Error fetching follow-ups:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Route all other requests to serve 'index.html' for SPA routing
