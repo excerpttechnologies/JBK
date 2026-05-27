@@ -4044,7 +4044,335 @@ function organizePermissions(permissions) {
 
   return structuredPermissions;
 }
+// ============================================================
+// PASTE THIS BLOCK IN index.js BEFORE:
+//   app.use(express.static(...))
+//   app.get('*', ...)
+//
+// NEW DEDICATED API FOR EnquiryAssignment page
+// Route: GET /api/enquiry-assignment/data
+// ============================================================
 
+/**
+ * GET /api/enquiry-assignment/data
+ *
+ * Returns in ONE call:
+ *   - unassigned enquiries (paginated, server-side)
+ *   - walkin enquiries (paginated, server-side)
+ *   - assigned enquiries (paginated, server-side)
+ *   - masterBranches + branches dropdown data
+ *   - telecallers grouped by branchId (for assign dropdowns)
+ *
+ * Query params:
+ *   role            - "SuperAdmin" or anything else
+ *   branchId        - branch filter for non-SuperAdmin
+ *   masterBranchId  - master branch filter (SuperAdmin)
+ *   branchFilter    - specific branch filter (SuperAdmin)
+ *   search          - text search (name, mobile)
+ *   tab             - "unassigned" | "walkin" | "assigned" (which tab is active)
+ *   page            - page number (default 1)
+ *   limit           - per page (default 7, max 50)
+ */
+app.get("/api/enquiry-assignment/data", async (req, res) => {
+  try {
+    const {
+      role           = "",
+      branchId       = "",
+      masterBranchId = "",
+      branchFilter   = "",
+      search         = "",
+      tab            = "unassigned",
+      page: pageParam  = 1,
+      limit: limitParam = 7,
+    } = req.query;
+
+    const page  = Math.max(Number(pageParam), 1);
+    const limit = Math.min(Math.max(Number(limitParam), 1), 50);
+    const skip  = (page - 1) * limit;
+
+    // ── 1. Build base enquiry filter ─────────────────────────
+    const baseFilter = {};
+
+    // Non-SuperAdmin: always filter to their branch
+    if (role !== "SuperAdmin" && branchId) {
+      baseFilter.branchId = branchId;
+    } else {
+      // SuperAdmin: apply optional master/branch filter
+      if (branchFilter && branchFilter !== "all") {
+        baseFilter.branchId = branchFilter;
+      } else if (masterBranchId && masterBranchId !== "all") {
+        // Fetch all branchIds under this master branch
+        const master = await MasterBranch.findById(masterBranchId)
+          .select("BranchesID").lean();
+        if (master?.BranchesID?.length) {
+          const branchDocs = await Branch.find({
+            _id: { $in: master.BranchesID }
+          }).select("branchId").lean();
+          const branchIds = branchDocs.map((b) => b.branchId);
+          if (branchIds.length) baseFilter.branchId = { $in: branchIds };
+        }
+      }
+    }
+
+    // Search filter
+    if (search && search.trim()) {
+      const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+      baseFilter.$or = [
+        { firstname:    rx },
+        { lastname:     rx },
+        { mobileNumber: rx },
+      ];
+    }
+
+    // ── 2. Build per-tab status filter ────────────────────────
+    const unassignedFilter = {
+      ...baseFilter,
+      status:     "unassigned",
+      $or: [
+        { formatting: { $exists: false } },
+        { formatting: "" },
+        { formatting: null },
+      ],
+    };
+    // if search was added, merge $or carefully
+    if (search && search.trim()) {
+      const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+      unassignedFilter.$and = [
+        { $or: unassignedFilter.$or },
+        { $or: [{ firstname: rx }, { lastname: rx }, { mobileNumber: rx }] },
+      ];
+      delete unassignedFilter.$or;
+    }
+
+    const walkinFilter    = { ...baseFilter, status: "unassigned", formatting: { $exists: true, $ne: "" } };
+    const assignedFilter  = { ...baseFilter, status: "assigned" };
+
+    // Fix: clean up $or conflict for walkin/assigned filters too
+    if (search && search.trim()) {
+      const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+      const searchOr = [{ firstname: rx }, { lastname: rx }, { mobileNumber: rx }];
+      if (walkinFilter.$or) {
+        walkinFilter.$and = [{ $or: walkinFilter.$or }, { $or: searchOr }];
+        delete walkinFilter.$or;
+      } else {
+        walkinFilter.$or = searchOr;
+      }
+      assignedFilter.$or = searchOr;
+    }
+
+    // ── 3. Select fields for enquiry queries ──────────────────
+    const enquirySelect = "firstname lastname mobileNumber status branchId assignedTo createdAt formatting interestedSubjects courseId";
+    const populateOpts  = [
+      { path: "interestedSubjects", model: "Subject", select: "SubjectName SubjectId" },
+      { path: "courseId",           model: "Course",  select: "CourseName" },
+    ];
+
+    // ── 4. Parallel fetch based on active tab + counts + dropdowns
+    // We always fetch counts for all 3 tabs (cheap countDocuments)
+    // But only paginate the active tab to keep payload small
+    const activeTabQuery =
+      tab === "walkin"   ? walkinFilter   :
+      tab === "assigned" ? assignedFilter :
+      unassignedFilter;
+
+    const [
+      activeEnquiries,
+      activeTotal,
+      unassignedCount,
+      walkinCount,
+      assignedCount,
+      masterBranches,
+      branches,
+      allTelecallers,
+    ] = await Promise.all([
+      // Active tab: paginated
+      Enquiry.find(activeTabQuery)
+        .select(enquirySelect)
+        .populate(populateOpts[0])
+        .populate(populateOpts[1])
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Enquiry.countDocuments(activeTabQuery),
+
+      // Tab counts (cheap)
+      Enquiry.countDocuments(unassignedFilter),
+      Enquiry.countDocuments(walkinFilter),
+      Enquiry.countDocuments(assignedFilter),
+
+      // Dropdowns
+      MasterBranch.find({}).select("MasterBranchName BranchesID").lean(),
+      Branch.find({}).select("branchId branchName location MasterBranchID").lean(),
+
+      // All telecallers at once (no serial loop per branch)
+      Faculty.find({ role: { $in: ["Telecaller"] } })
+        .select("firstName lastName branchId _id")
+        .lean(),
+    ]);
+
+    // ── 5. Group telecallers by branchId ──────────────────────
+    const telecallersByBranch = {};
+    const telecallerNames = {};
+    allTelecallers.forEach((tc) => {
+      if (!telecallersByBranch[tc.branchId]) {
+        telecallersByBranch[tc.branchId] = [];
+      }
+      telecallersByBranch[tc.branchId].push(tc);
+      telecallerNames[String(tc._id)] = `${tc.firstName} ${tc.lastName}`;
+    });
+
+    // ── 6. Respond ────────────────────────────────────────────
+    res.json({
+      enquiries:  activeEnquiries,
+      total:      activeTotal,
+      page,
+      limit,
+      totalPages: Math.ceil(activeTotal / limit) || 1,
+
+      // Tab counts for badges
+      counts: {
+        unassigned: unassignedCount,
+        walkin:     walkinCount,
+        assigned:   assignedCount,
+      },
+
+      // Dropdown data bundled
+      dropdowns: {
+        masterBranches,
+        branches,
+        telecallersByBranch,
+        telecallerNames,
+      },
+    });
+
+  } catch (error) {
+    console.error("❌ /api/enquiry-assignment/data error:", error);
+    res.status(500).json({ message: "Error fetching data", error: error.message });
+  }
+});
+
+
+
+
+// ============================================================
+// NEW DEDICATED API — EnquiryAssignment Page
+// Add this block to index.js (paste it anywhere after all
+// models are defined, e.g. right after the assign-enquiry route)
+//
+// Route: GET /api/enquiry-assignment/init
+//
+// What it does in ONE DB round-trip (Promise.all):
+//   1. Fetches ALL enquiries for the user's scope
+//   2. Fetches ALL master branches
+//   3. Fetches ALL branches
+//   4. Fetches ALL telecallers (grouped by branchId)
+//
+// The frontend does ALL filtering/searching/pagination itself
+// in memory → instant UI, zero extra network calls.
+// ============================================================
+
+app.get("/api/enquiry-assignment/init", async (req, res) => {
+  try {
+    const { role = "", branchId = "" } = req.query;
+
+    const isSuperAdmin =
+      ["superadmin", "super_admin", "superAdmin", "SuperAdmin"].includes(role);
+
+    // ── 1. Build enquiry filter based on role ─────────────────
+    const enquiryFilter = {};
+    if (!isSuperAdmin && branchId) {
+      enquiryFilter.branchId = branchId;
+    }
+
+    // ── 2. Telecaller filter ───────────────────────────────────
+    const telecallerFilter = { role: { $in: ["Telecaller"] } };
+    if (!isSuperAdmin && branchId) {
+      telecallerFilter.branchId = branchId;
+    }
+
+    // ── 3. Branch filter ───────────────────────────────────────
+    const branchFilter = {};
+    if (!isSuperAdmin && branchId) {
+      branchFilter.branchId = branchId;
+    }
+
+    // ── 4. Fire ALL queries in parallel ───────────────────────
+    const [enquiries, masterBranches, branches, telecallers] =
+      await Promise.all([
+        Enquiry.find(enquiryFilter)
+          .select(
+            "firstname lastname mobileNumber status branchId assignedTo createdAt formatting interestedSubjects courseId"
+          )
+          .populate({
+            path: "interestedSubjects",
+            model: "Subject",
+            select: "SubjectName SubjectId",
+          })
+          .sort({ createdAt: -1 })
+          .lean(),
+
+        MasterBranch.find({})
+          .select("MasterBranchName BranchesID")
+          .lean(),
+
+        Branch.find(branchFilter)
+          .select("branchId branchName location")
+          .lean(),
+
+        Faculty.find(telecallerFilter)
+          .select("firstName lastName branchId _id")
+          .lean(),
+      ]);
+
+    // ── 5. Group telecallers by branchId ──────────────────────
+    const telecallersByBranch = {};
+    const telecallerNames = {};
+
+    telecallers.forEach((tc) => {
+      const bid = tc.branchId;
+      if (!telecallersByBranch[bid]) telecallersByBranch[bid] = [];
+      telecallersByBranch[bid].push({
+        _id: tc._id,
+        firstName: tc.firstName,
+        lastName: tc.lastName,
+        branchId: tc.branchId,
+      });
+      telecallerNames[String(tc._id)] = `${tc.firstName} ${tc.lastName}`;
+    });
+
+    // ── 6. Format branches ─────────────────────────────────────
+    const formattedBranches = branches.map((b) => ({
+      branchId: b.branchId,
+      branchName: b.branchName,
+      name: b.branchName,
+      location: b.location,
+    }));
+
+    // ── 7. Build branchMap (id → name) ────────────────────────
+    const branchMap = {};
+    branches.forEach((b) => {
+      branchMap[b.branchId] = b.branchName;
+    });
+
+    // ── 8. Respond ────────────────────────────────────────────
+    res.json({
+      enquiries,       // full list — frontend splits into tabs
+      masterBranches,  // for SuperAdmin dropdown
+      branches: formattedBranches,
+      branchMap,
+      telecallersByBranch,
+      telecallerNames,
+    });
+  } catch (error) {
+    console.error("❌ /api/enquiry-assignment/init error:", error);
+    res.status(500).json({
+      message: "Error fetching enquiry assignment data",
+      error: error.message,
+    });
+  }
+});
 
 // app.post("/api/enquiry", async (req, res) => {
 //   const data = req.body;
@@ -17499,7 +17827,180 @@ app.get("/api/faculty-form/bootstrap", async (req, res) => {
 // FIX: Fetch Faculty + Enquiries + Courses + Subjects in 4 parallel
 // queries, then join them in JS (single pass). Total = 4 DB calls.
 // ============================================================
+// ============================================================
+// PASTE THIS BLOCK IN index.js BEFORE:
+//   app.use(express.static(...))
+//   app.get('*', ...)
+//
+// NEW DEDICATED API FOR Lead Followups (SuperAdminDashboard) page
+// Route: GET /api/lead-followups
+// ============================================================
 
+/**
+ * GET /api/lead-followups
+ *
+ * Replaces the Faculty-first approach with an Enquiry-first approach:
+ *   - Query Enquiries directly (assigned or with followups)
+ *   - Populate only the fields needed for the table
+ *   - Returns flat rows — no client-side processFollowUps() needed
+ *   - Returns telecallers-by-branch map for reassign dropdowns
+ *
+ * Query params:
+ *   branchId        - filter by branch (empty = all)
+ *   masterBranchId  - filter by master branch (empty = all)
+ *   role            - "SuperAdmin" or anything else
+ *   page            - page number (default 1)
+ *   limit           - rows per page (default 10, max 50)
+ *   search          - searches name, mobile, telecaller name
+ */
+app.get("/api/lead-followups", async (req, res) => {
+  try {
+    const {
+      branchId       = "",
+      masterBranchId = "",
+      role           = "",
+      page: pageParam  = 1,
+      limit: limitParam = 10,
+      search           = "",
+    } = req.query;
+
+    const page  = Math.max(Number(pageParam), 1);
+    const limit = Math.min(Math.max(Number(limitParam), 1), 50);
+    const skip  = (page - 1) * limit;
+
+    // ── 1. Build Enquiry filter ───────────────────────────────
+    // Only fetch enquiries that are assigned (have a telecaller)
+    const enquiryFilter = {
+      assignedTo: { $exists: true, $ne: null },
+    };
+
+    if (branchId) {
+      enquiryFilter.branchId = branchId;
+    } else if (masterBranchId) {
+      enquiryFilter.MasterBranchID = masterBranchId;
+    }
+
+    // Search filter applied at DB level
+    if (search && search.trim()) {
+      const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+      enquiryFilter.$or = [
+        { firstname:    rx },
+        { lastname:     rx },
+        { mobileNumber: rx },
+        { email:        rx },
+      ];
+    }
+
+    // ── 2. Fetch enquiries + count + telecallers in parallel ──
+    const [enquiries, total, allTelecallers, masterBranches, branches] =
+      await Promise.all([
+        Enquiry.find(enquiryFilter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .select(
+            "firstname lastname mobileNumber email branchId MasterBranchID " +
+            "courseId interestedSubjects assignedTo assignedToName " +
+            "status createdAt followUps"
+          )
+          .populate({ path: "courseId",          model: "Course",   select: "CourseName CourseID" })
+          .populate({ path: "interestedSubjects", model: "Subject",  select: "SubjectName SubjectId" })
+          .populate({ path: "assignedTo",         model: "Faculty",  select: "firstName lastName branchId" })
+          .lean(),
+
+        Enquiry.countDocuments(enquiryFilter),
+
+        // All telecallers for reassign dropdowns (minimal fields)
+        Faculty.find({ role: { $in: ["Telecaller"] } })
+          .select("firstName lastName branchId _id")
+          .lean(),
+
+        MasterBranch.find({}).select("MasterBranchName BranchesID").lean(),
+        Branch.find({}).select("branchId branchName location MasterBranchID").lean(),
+      ]);
+
+    // ── 3. Flatten into table rows ────────────────────────────
+    // Each row = one enquiry, with latest followup info merged in
+    const rows = enquiries.map((enquiry) => {
+      // Sort followups descending to get the latest
+      const sortedFollowUps = [...(enquiry.followUps || [])].sort(
+        (a, b) => new Date(b.followedUpDate || 0) - new Date(a.followedUpDate || 0)
+      );
+      const latestFollowUp = sortedFollowUps[0] || null;
+
+      const telecallerName = enquiry.assignedTo
+        ? `${enquiry.assignedTo.firstName || ""} ${enquiry.assignedTo.lastName || ""}`.trim()
+        : enquiry.assignedToName || "N/A";
+
+      return {
+        // Row identity
+        _id: enquiry._id,
+
+        // Enquiry data (same shape the frontend expects in enquiryId)
+        enquiryId: {
+          _id:               enquiry._id,
+          firstname:         enquiry.firstname,
+          lastname:          enquiry.lastname,
+          mobileNumber:      enquiry.mobileNumber,
+          email:             enquiry.email,
+          branchId:          enquiry.branchId,
+          MasterBranchID:    enquiry.MasterBranchID,
+          courseId:          enquiry.courseId,
+          interestedSubjects: enquiry.interestedSubjects,
+          createdAt:         enquiry.createdAt,
+          assignedTo:        enquiry.assignedTo?._id || enquiry.assignedTo,
+          assignedToName:    telecallerName,
+          status:            enquiry.status,
+        },
+
+        // Telecaller info
+        telecallerId:   enquiry.assignedTo?._id || enquiry.assignedTo,
+        telecallerName: telecallerName,
+
+        // Latest followup
+        followedUpDate: latestFollowUp?.followedUpDate || null,
+        status:         latestFollowUp?.status || enquiry.status || "Assigned",
+        notes:          latestFollowUp?.remark || "",
+
+        // All followups history (for modal)
+        allFollowUps: sortedFollowUps.map((fu) => ({
+          followedUpDate:   fu.followedUpDate,
+          nextFollowUpDate: fu.nextFollowUpDate,
+          status:           fu.status,
+          remark:           fu.remark,
+          telecallerId:     enquiry.assignedTo?._id,
+          telecallerName:   telecallerName,
+        })),
+      };
+    });
+
+    // ── 4. Group telecallers by branchId for reassign dropdown ─
+    const telecallersByBranch = {};
+    allTelecallers.forEach((tc) => {
+      if (!telecallersByBranch[tc.branchId]) {
+        telecallersByBranch[tc.branchId] = [];
+      }
+      telecallersByBranch[tc.branchId].push(tc);
+    });
+
+    res.json({
+      followUps:  rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+      dropdowns: {
+        telecallersByBranch,
+        masterBranches,
+        branches,
+      },
+    });
+
+  } catch (error) {
+    console.error("❌ /api/lead-followups error:", error);
+    res.status(500).json({ message: "Error fetching follow-ups", error: error.message });
+  }
+});
 app.get("/api/followupsaaa", authenticateToken, async (req, res) => {
   try {
     const { branchId, includeCourseDetails } = req.query;
