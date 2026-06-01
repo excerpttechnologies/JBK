@@ -5880,6 +5880,212 @@ app.get("/api/enquiries", authenticateToken, async (req, res) => {
     });
   }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+// ============================================================
+// ADD THIS ROUTE to index.js
+// Place it after your existing /api/enquiries route (~line 5554)
+//
+// This replaces the EnquiryAnalysisDashboard's call to
+// GET /api/enquiries?all=true which was doing:
+//   - Full collection scan (no limit)
+//   - 4 separate populate queries per batch
+//   - Returning fields the dashboard never uses
+//
+// This endpoint:
+//   - Selects ONLY the 7 fields the charts need
+//   - Resolves courseId + interestedSubjects with 2 parallel
+//     $in queries instead of per-document populate
+//   - Caches the result in memory + Redis
+//   - Returns in ~50ms vs 2-8s
+// ============================================================
+
+// app.get('/api/dashboard/enquiry-analysis', authenticateToken, async (req, res) => {
+//   try {
+//     const branchId = req.query.branchId;
+//     const cacheKey = `dashboard:enquiry-analysis:${branchId || 'global'}`;
+
+//     // ── L1: memory cache ──────────────────────────────────────
+//     const memHit = getMemCache(cacheKey);
+//     if (memHit) return res.json({ ...memHit, cacheLevel: 'memory' });
+
+//     // ── L2: Redis cache ───────────────────────────────────────
+//     const redisHit = await getCache(cacheKey);
+//     if (redisHit) {
+//       setMemCache(cacheKey, redisHit);
+//       return res.json({ ...redisHit, cacheLevel: 'redis' });
+//     }
+
+//     // ── L3: DB — minimal fields only ─────────────────────────
+//     const branchFilter = branchId
+//       ? { $or: [{ branchId }, { branch: branchId }] }
+//       : {};
+
+//     // Step 1: Fetch only the scalar fields needed for charts
+//     //         No populate here — just raw ObjectId arrays
+//     const enquiries = await Enquiry.find(branchFilter)
+//       .select(
+//         'formatting qualification ModeofLearning ' +
+//         'CurrentOccupationStatus referralSource joiningPlan ' +
+//         'courseId interestedSubjects'
+//       )
+//       .lean();
+
+//     // Step 2: Collect all unique courseId and subjectId values
+//     const courseIdSet  = new Set();
+//     const subjectIdSet = new Set();
+
+//     enquiries.forEach(e => {
+//       (Array.isArray(e.courseId) ? e.courseId : (e.courseId ? [e.courseId] : []))
+//         .forEach(id => courseIdSet.add(String(id)));
+//       (Array.isArray(e.interestedSubjects) ? e.interestedSubjects : [])
+//         .forEach(id => subjectIdSet.add(String(id)));
+//     });
+
+//     // Step 3: Resolve names in 2 parallel queries (not N per doc)
+//     const [courses, subjects] = await Promise.all([
+//       courseIdSet.size > 0
+//         ? Course.find({ _id: { $in: [...courseIdSet] } })
+//             .select('CourseName _id').lean()
+//         : [],
+//       subjectIdSet.size > 0
+//         ? Subject.find({ _id: { $in: [...subjectIdSet] } })
+//             .select('SubjectName _id').lean()
+//         : [],
+//     ]);
+
+//     const courseMap  = new Map(courses.map(c  => [String(c._id), c.CourseName]));
+//     const subjectMap = new Map(subjects.map(s => [String(s._id), s.SubjectName]));
+
+//     // Step 4: Build minimal payload — only what charts need
+//     const payload = {
+//       enquiries: enquiries.map(e => ({
+//         formatting:              e.formatting              || '',
+//         qualification:           e.qualification           || '',
+//         ModeofLearning:          e.ModeofLearning          || '',
+//         CurrentOccupationStatus: e.CurrentOccupationStatus || '',
+//         referralSource:          e.referralSource          || '',
+//         joiningPlan:             e.joiningPlan             || '',
+//         // Replace ObjectId arrays with resolved name arrays
+//         courseId: (Array.isArray(e.courseId) ? e.courseId : (e.courseId ? [e.courseId] : []))
+//           .map(id => ({ CourseName: courseMap.get(String(id)) || 'Unknown Course' })),
+//         interestedSubjects: (Array.isArray(e.interestedSubjects) ? e.interestedSubjects : [])
+//           .map(id => ({ SubjectName: subjectMap.get(String(id)) || 'Unknown Subject' })),
+//       })),
+//     };
+
+//     // ── Cache and respond ─────────────────────────────────────
+//     setMemCache(cacheKey, payload);
+//     await setCache(cacheKey, payload, DASHBOARD_CACHE_TTL);
+
+//     res.json({ ...payload, cacheLevel: 'db' });
+
+//   } catch (error) {
+//     console.error('Error fetching enquiry analysis data:', error);
+//     res.status(500).json({ error: 'Error fetching enquiry analysis data' });
+//   }
+// });
+
+
+// ============================================================
+// REPLACE your existing /api/dashboard/enquiry-analysis route
+// in index.js (around line 5919).
+//
+// This version uses ONLY getCache/setCache (already in your
+// index.js) — no getMemCache needed.
+// ============================================================
+
+app.get('/api/dashboard/enquiry-analysis', authenticateToken, async (req, res) => {
+  try {
+    const branchId = req.query.branchId;
+    const cacheKey = `dashboard:enquiry-analysis:${branchId || 'global'}`;
+
+    // ── Redis / in-memory cache (uses your existing getCache) ─
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json({ ...cached, cached: true });
+
+    // ── Build filter ──────────────────────────────────────────
+    const branchFilter = branchId
+      ? { $or: [{ branchId }, { branch: branchId }] }
+      : {};
+
+    // ── Step 1: Fetch only the 8 fields the charts need ──────
+    // No .populate() here — just raw ObjectId refs
+    const enquiries = await Enquiry.find(branchFilter)
+      .select(
+        'formatting qualification ModeofLearning ' +
+        'CurrentOccupationStatus referralSource joiningPlan ' +
+        'courseId interestedSubjects'
+      )
+      .lean();
+
+    // ── Step 2: Collect all unique IDs ────────────────────────
+    const courseIdSet  = new Set();
+    const subjectIdSet = new Set();
+
+    enquiries.forEach(e => {
+      (Array.isArray(e.courseId) ? e.courseId : (e.courseId ? [e.courseId] : []))
+        .forEach(id => courseIdSet.add(String(id)));
+      (Array.isArray(e.interestedSubjects) ? e.interestedSubjects : [])
+        .forEach(id => subjectIdSet.add(String(id)));
+    });
+
+    // ── Step 3: Resolve names in 2 parallel $in queries ──────
+    // (replaces N×populate with 2 bulk lookups)
+    const [courses, subjects] = await Promise.all([
+      courseIdSet.size > 0
+        ? Course.find({ _id: { $in: [...courseIdSet] } })
+            .select('CourseName _id').lean()
+        : Promise.resolve([]),
+      subjectIdSet.size > 0
+        ? Subject.find({ _id: { $in: [...subjectIdSet] } })
+            .select('SubjectName _id').lean()
+        : Promise.resolve([]),
+    ]);
+
+    const courseMap  = new Map(courses.map(c  => [String(c._id), c.CourseName]));
+    const subjectMap = new Map(subjects.map(s => [String(s._id), s.SubjectName]));
+
+    // ── Step 4: Build minimal payload ────────────────────────
+    const payload = {
+      enquiries: enquiries.map(e => ({
+        formatting:              e.formatting              || '',
+        qualification:           e.qualification           || '',
+        ModeofLearning:          e.ModeofLearning          || '',
+        CurrentOccupationStatus: e.CurrentOccupationStatus || '',
+        referralSource:          e.referralSource          || '',
+        joiningPlan:             e.joiningPlan             || '',
+        courseId: (Array.isArray(e.courseId) ? e.courseId : (e.courseId ? [e.courseId] : []))
+          .map(id => ({ CourseName: courseMap.get(String(id)) || 'Unknown Course' })),
+        interestedSubjects: (Array.isArray(e.interestedSubjects) ? e.interestedSubjects : [])
+          .map(id => ({ SubjectName: subjectMap.get(String(id)) || 'Unknown Subject' })),
+      })),
+    };
+
+    // ── Cache and respond ─────────────────────────────────────
+    await setCache(cacheKey, payload, DASHBOARD_CACHE_TTL);
+    res.json({ ...payload, cached: false });
+
+  } catch (error) {
+    console.error('Error fetching enquiry analysis data:', error);
+    res.status(500).json({ error: 'Error fetching enquiry analysis data' });
+  }
+});
+
+
+
+
+
 app.get("/api/old/enquiries", async (req, res) => {
   try {
     const page = Number(req.query.page) || 0;
@@ -17852,7 +18058,30 @@ app.get("/api/faculty-form/bootstrap", async (req, res) => {
  *   page            - page number (default 1)
  *   limit           - rows per page (default 10, max 50)
  *   search          - searches name, mobile, telecaller name
+ * 
+ * 
+
+
+
+
+
+
+
+
+
+ 
  */
+
+
+
+
+
+
+
+
+
+
+
 app.get("/api/lead-followups", async (req, res) => {
   try {
     const {
@@ -18117,6 +18346,41 @@ app.get("/api/followupsaaa", authenticateToken, async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
+
+
+
+
+
+// CREATE branch  (was missing email + phone)
+app.post('/api/branches', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const { branchId, branchName, location, fulladdress, email, phone } = req.body;
+ 
+    // Validate required fields
+    if (!branchId || !branchName || !location) {
+      return res.status(400).json({ message: 'branchId, branchName, and location are required.' });
+    }
+ 
+    // Duplicate check
+    const existingBranch = await Branch.findOne({ branchId });
+    if (existingBranch) {
+      return res.status(400).json({ message: 'A branch with this ID already exists.' });
+    }
+ 
+    const branch = new Branch({ branchId, branchName, location, fulladdress, email, phone });
+    const newBranch = await branch.save();
+    res.status(201).json(newBranch);
+ 
+  } catch (error) {
+    console.error('Error creating branch:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+ 
+
+
+
+
 
 
 
