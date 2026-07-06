@@ -102,8 +102,8 @@ const transporter = nodemailer.createTransport({
   port: 465,
   secure: true, // SSL
   auth: {
-    // user: 'info@jbkacademy.in', // Lowercase recommended
-    // pass: 'Karthik@9581766526',
+    // user: 'admin@jbkacademy.in', // Lowercase recommended
+    // pass: 'Karthik@8464',
   
   
      user: 'admin@jbkacademy.in', // Lowercase recommended
@@ -2031,8 +2031,8 @@ async function sendWelcomeEmail(email, password, name) {
     port: 587,
     secure: false, // Use STARTTLS
     auth: {
-      user: 'info@jbkacademy.in',
-      pass: 'Karthik@9581766526', // Consider using environment variables for credentials
+      user: 'admin@jbkacademy.in',
+      pass: 'Karthik@8464', // Consider using environment variables for credentials
     },
     tls: {
       rejectUnauthorized: false
@@ -2056,7 +2056,7 @@ async function sendWelcomeEmail(email, password, name) {
 
   // FIXED: Simplified email content
   const mailOptions = {
-    from: '"JBK Academy" <info@jbkacademy.in>',
+    from: '"JBK Academy" <admin@jbkacademy.in>',
     to: email,
     subject: 'Welcome to JBK Academy - Faculty Portal Access',
     html: `
@@ -4379,6 +4379,21 @@ app.get("/api/enquiry-assignment/init", async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // app.post("/api/enquiry", async (req, res) => {
 //   const data = req.body;
 //   console.log("Received Enquiry Data:", data);
@@ -5071,9 +5086,9 @@ app.get("/api/enquiry-assignment/init", async (req, res) => {
 //       console.log("Duplicate Notification:", duplicateNotification);
 
 //       const superAdminMailOptions = {
-//   from: 'info@jbkacademy.in', // Use authenticated email
+//   from: 'admin@jbkacademy.in', // Use authenticated email
 //     // Optional: Allow replies to go to the original sender
-//   to: 'info@jbkacademy.in',
+//   to: 'admin@jbkacademy.in',
 //   subject: `Duplicate Enquiry Notification - ${data.firstname} ${data.lastname}`,
 //   html: `${duplicateNotification}`
 // };
@@ -5227,7 +5242,7 @@ app.get("/api/enquiry-assignment/init", async (req, res) => {
 //         <div class="footer">
 //             <div class="company-name">JBK Academy</div>
 //             <div class="contact-info">
-//                 📧 <a href="mailto:info@jbkacademy.in">info@jbkacademy.in</a> | 📞 <a href="tel:+919985023100">+91 9985023100</a><br>
+//                 📧 <a href="mailto:admin@jbkacademy.in">admin@jbkacademy.in</a> | 📞 <a href="tel:+919985023100">+91 9985023100</a><br>
 //                 🌐 <a href="https://jbkacademy.in/" target="_blank">https://jbkacademy.in/</a>
 //             </div>
 //              <div style="text-align: center; margin: 25px 0; padding-top: 20px; border-top: 1px solid #34495e;">
@@ -5269,7 +5284,7 @@ app.get("/api/enquiry-assignment/init", async (req, res) => {
 // `;
 
 //     const mailOptions1 = {
-//       from: 'info@jbkacademy.in',
+//       from: 'admin@jbkacademy.in',
 //       to: data.email,
 //       subject: `We've Received Your Inquiry, ${data.firstname}!`,
 //       html: emailBody
@@ -5567,8 +5582,8 @@ app.get("/api/enquiry-assignment/init", async (req, res) => {
 // `;
 
 //         const superAdminMailOptions = {
-//           from: 'info@jbkacademy.in',
-//           to: 'info@jbkacademy.in',
+//           from: 'admin@jbkacademy.in',
+//           to: 'admin@jbkacademy.in',
 //           subject: `Duplicate Enquiry Notification - ${data.firstname} ${data.lastname}`,
 //           html: duplicateNotification
 //         };
@@ -5644,7 +5659,7 @@ app.get("/api/enquiry-assignment/init", async (req, res) => {
 //         </div>
 //         <div class="footer">
 //             <div>JBK Academy</div>
-//             <div>📧 info@jbkacademy.in | 📞 +91 9985023100</div>
+//             <div>📧 admin@jbkacademy.in | 📞 +91 9985023100</div>
 //         </div>
 //     </div>
 // </body>
@@ -5652,7 +5667,7 @@ app.get("/api/enquiry-assignment/init", async (req, res) => {
 // `;
 
 //       const mailOptions1 = {
-//         from: 'info@jbkacademy.in',
+//         from: 'admin@jbkacademy.in',
 //         to: data.email,
 //         subject: `We've Received Your Inquiry, ${data.firstname}!`,
 //         html: emailBody
@@ -7369,8 +7384,8 @@ async function sendRegistrationEmail(email, studentName, regId, courseName, plai
   port: 465,
   secure: true, // SSL
   auth: {
-    user: 'info@jbkacademy.in', // Lowercase recommended
-    pass: 'Karthik@9581766526',
+    user: 'admin@jbkacademy.in', // Lowercase recommended
+    pass: 'Karthik@8464',
   },
   logger: true,
   debug: true
@@ -7378,7 +7393,7 @@ async function sendRegistrationEmail(email, studentName, regId, courseName, plai
 
   // Email content
 const mailOptions = {
-  from: '"JBK Academy" <info@jbkacademy.in>',
+  from: '"JBK Academy" <admin@jbkacademy.in>',
   to: email,
   subject: 'Registration Confirmation - JBK Academy',
   html: `
@@ -7489,7 +7504,7 @@ const mailOptions = {
           </p>
           <p style="margin: 8px 0; font-size: 16px; font-weight: 300;">
             <span style="color: #bdc3c7;">Email:</span> 
-            <a href="mailto:info@jbkacademy.in" style="color: #74b9ff; text-decoration: none; font-weight: 400;">info@jbkacademy.in</a>
+            <a href="mailto:admin@jbkacademy.in" style="color: #74b9ff; text-decoration: none; font-weight: 400;">admin@jbkacademy.in</a>
           </p>
           <p style="margin: 8px 0; font-size: 16px; font-weight: 300;">
             <span style="color: #bdc3c7;">Website:</span> 
@@ -12778,10 +12793,50 @@ console.log("Received Batch Data:", batchData);
     res.status(500).json({ error: "Failed to create batch" });
   }
 });
+
+
+
+
+
+
+
+
+
+// app.post('/api/send-reset-code', async (req, res) => {
+//   const { email } = req.body;
+//   const code = Math.floor(100000 + Math.random() * 900000).toString();
+//   const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+
+//   let user = await Faculty.findOne({ email });
+//   let userType = 'faculty';
+//   if (!user) {
+//     user = await Registration.findOne({ email });
+//     userType = 'register';
+//   }
+
+//   if (!user) return res.status(404).json({ message: 'User not found' });
+
+//   user.resetCode = code;
+//   user.resetCodeExpiry = expiry;
+//   await user.save();
+
+//   await transporter.sendMail({
+//     to: email,
+//     subject: 'Password Reset Code',
+//     html: `<p>Your reset code is <b>${code}</b>. It will expire in 5 minutes.</p>`,
+//   });
+
+//   res.json({ message: `Code sent to ${email}`, userType });
+// });
+
+
+
+
+
 app.post('/api/send-reset-code', async (req, res) => {
   const { email } = req.body;
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+  const expiry = new Date(Date.now() + 5 * 60 * 1000);
 
   let user = await Faculty.findOne({ email });
   let userType = 'faculty';
@@ -12789,21 +12844,30 @@ app.post('/api/send-reset-code', async (req, res) => {
     user = await Registration.findOne({ email });
     userType = 'register';
   }
-
   if (!user) return res.status(404).json({ message: 'User not found' });
 
   user.resetCode = code;
   user.resetCodeExpiry = expiry;
   await user.save();
 
-  await transporter.sendMail({
-    to: email,
-    subject: 'Password Reset Code',
-    html: `<p>Your reset code is <b>${code}</b>. It will expire in 5 minutes.</p>`,
-  });
-
-  res.json({ message: `Code sent to ${email}`, userType });
+  try {
+    const info = await transporter.sendMail({
+      from: '"JBK Academy" <admin@jbkacademy.in>', // <-- add this
+      to: email,
+      subject: 'Password Reset Code',
+      html: `<p>Your reset code is <b>${code}</b>. It will expire in 5 minutes.</p>`,
+    });
+    console.log('Reset code email sent:', info.messageId, info.response);
+    return res.json({ message: `Code sent to ${email}`, userType });
+  } catch (err) {
+    console.error('Failed to send reset code email:', err.message, err.code, err.response);
+    return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' });
+  }
 });
+
+
+
+
 
 // Reset password route
 app.post('/api/reset-password', async (req, res) => {
@@ -12889,7 +12953,7 @@ async function sendReminderEmail(student, installmentInfo, installmentNumber) {
     const studentName = `${student.fName || ''} ${student.lName || ''}`.trim() || 'Student';
 
     const mailOptions = {
-      from: 'info@jbkacademy.in', // Replace with your actual email
+      from: 'admin@jbkacademy.in', // Replace with your actual email
       to: student.email,
       subject: `Payment Reminder: Installment #${installmentNumber} Due Soon`,
    html:`<!DOCTYPE html>
@@ -13001,7 +13065,7 @@ async function sendReminderEmail(student, installmentInfo, installmentNumber) {
                     📞 Phone: +91 919985023100
                 </p>
                 <p style="color: #bdc3c7; margin: 5px 0; font-size: 14px;">
-                    ✉️ Email: info@jbkacademy.in
+                    ✉️ Email: admin@jbkacademy.in
                 </p>
                 <p style="color: #bdc3c7; margin: 5px 0; font-size: 14px;">
                     📍 Address: JBK Academy Hyderabad, 
@@ -18473,6 +18537,541 @@ app.get("/api/walkin-vs-admissions", async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+app.post("/api/enquiry", authenticateToken, async (req, res) => {
+  const data = req.body;
+  if (isSubAdminUser(req.user) && req.user.branchId) {
+    if (data.branchId && data.branchId !== req.user.branchId) {
+      return res.status(403).json({ message: "Cross-branch operation denied" });
+    }
+    data.branchId = req.user.branchId;
+  }
+  console.log("Received Enquiry Data:", data);
+
+  try {
+    // Step 1: Find the branch using branchId
+    const branch = await Branch.findOne({ branchId: data.branchId });
+    console.log("Branch Found:", branch);
+
+    if (!branch) {
+      return res.status(400).json({ error: "Invalid branch ID" });
+    }
+    console.log("Branch ID:", branch._id);
+
+    // Step 2: Find the masterBranch that references this branch
+    const masterBranch = await MasterBranch.findOne({ BranchesID: branch._id });
+
+    if (!masterBranch) {
+      console.log(`No master branch found for branch ID: ${data.branchId}`);
+      // Continue processing without MasterBranchID if not found
+    } else {
+      console.log("Master Branch Found:", masterBranch._id);
+    }
+
+    // Enhanced duplicate check:
+    // If master branch exists, check for duplicate across all branches under this master
+    // Otherwise, fall back to checking only the current branch
+    let existingEnquiry;
+
+    if (masterBranch) {
+      // Get all branches under this master branch
+      const allBranchesUnderMaster = await Branch.find({
+        _id: { $in: masterBranch.BranchesID }
+      });
+
+      const branchIds = allBranchesUnderMaster.map(b => b.branchId);
+      console.log("Checking for duplicates across branches:", branchIds);
+
+      // Check if email or phone already exists in any branch under this master
+      existingEnquiry = await Enquiry.findOne({
+        branchId: { $in: branchIds },
+        $or: [
+          { email: data.email },
+          { mobileNumber: data.mobileNumber }
+        ]
+      });
+    } else {
+      // Fall back to original check if no master branch
+      existingEnquiry = await Enquiry.findOne({
+        branchId: data.branchId,
+        $or: [
+          { email: data.email },
+          { mobileNumber: data.mobileNumber }
+        ]
+      });
+    }
+
+    // If existing enquiry found, send notification to superadmin with course info
+    if (existingEnquiry) {
+      // Find which branch this duplicate came from
+      const duplicateBranch = await Branch.findOne({ branchId: existingEnquiry.branchId });
+      const duplicateBranchName = duplicateBranch ? duplicateBranch.branchName : "Unknown Branch";
+
+      // Get course information if available
+      let courseInfo = "Not specified";
+      let courseTypeInfo = "Not specified";
+
+      if (existingEnquiry.courseId) {
+        // Fetch and populate course information
+        const course = await Course.findOne({ _id: existingEnquiry.courseId });
+        if (course) {
+          courseInfo = course.CourseName;
+
+          // Fetch course type information
+          if (course.CourseTypeID && course.CourseTypeID.length > 0) {
+            const courseTypes = await CourseType.find({
+              _id: { $in: course.CourseTypeID }
+            });
+
+            if (courseTypes && courseTypes.length > 0) {
+              courseTypeInfo = courseTypes.map(ct => ct.CourseTypeName).join(", ");
+            }
+          }
+        }
+      }
+
+      // Get current branch info for comparison
+      const currentBranchName = branch.branchName || "Unknown Current Branch";
+
+      // Get current enquiry's course information
+      let currentCourseInfo = "Not specified";
+      let currentCourseTypeInfo = "Not specified";
+
+      if (data.courseId) {
+        // Fetch and populate current course information
+        const currentCourse = await Course.findOne({ _id: data.courseId });
+        if (currentCourse) {
+          currentCourseInfo = currentCourse.CourseName;
+
+          // Fetch current course type information
+          if (currentCourse.CourseTypeID && currentCourse.CourseTypeID.length > 0) {
+            const currentCourseTypes = await CourseType.find({
+              _id: { $in: currentCourse.CourseTypeID }
+            });
+
+            if (currentCourseTypes && currentCourseTypes.length > 0) {
+              currentCourseTypeInfo = currentCourseTypes.map(ct => ct.CourseTypeName).join(", ");
+            }
+          }
+
+        }
+      }
+
+      // const duplicateNotification = `
+      //   Duplicate Enquiry Detected:
+        
+      //   Name: ${data.firstname} ${data.lastname}
+      //   Email: ${data.email}
+      //   Phone: ${data.mobileNumber}
+        
+      //   Current Enquiry Details:
+      //   - Branch ID: ${data.branchId}
+      //   - Branch Name: ${currentBranchName}
+      //   - Selected Course: ${currentCourseInfo} 
+     
+        
+      //   Previous Registration Details:
+      //   - Branch ID: ${existingEnquiry.branchId}
+      //   - Branch Name: ${duplicateBranchName}
+      //   - Course: ${courseInfo}
+      
+      //    ${masterBranch ? `- Under Master Branch: ${masterBranch.MasterBranchName || masterBranch._id}` : ''}
+      //   - Original Enquiry Date: ${existingEnquiry.createdAt ? new Date(existingEnquiry.createdAt).toLocaleString() : 'Unknown'}
+      // `;
+      const duplicateNotification = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 15px; border-left: 4px solid #dc3545; margin-bottom: 20px; }
+        .alert-title { color: #dc3545; font-size: 18px; font-weight: bold; margin: 0; }
+        .section { margin-bottom: 20px; }
+        .section-title { color: #495057; font-size: 16px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #dee2e6; padding-bottom: 5px; }
+        .info-grid { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+        .info-row { margin-bottom: 8px; }
+        .label { font-weight: bold; color: #495057; display: inline-block; min-width: 120px; }
+        .value { color: #212529; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 12px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 class="alert-title">⚠️ Duplicate Enquiry Alert</h2>
+        </div>
+
+        <div class="section">
+            <h3 class="section-title">Student Information</h3>
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="label">Full Name:</span>
+                    <span class="value">${data.firstname} ${data.lastname}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Email:</span>
+                    <span class="value">${data.email}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Phone:</span>
+                    <span class="value">${data.mobileNumber}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3 class="section-title">Current Enquiry Details</h3>
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="label">Branch ID:</span>
+                    <span class="value">${data.branchId}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Branch Name:</span>
+                    <span class="value">${currentBranchName}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Selected Course:</span>
+                    <span class="value">${currentCourseInfo}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Enquiry Date:</span>
+                    <span class="value">${new Date().toLocaleString()}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3 class="section-title">Previous Registration Details</h3>
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="label">Branch ID:</span>
+                    <span class="value">${existingEnquiry.branchId}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Branch Name:</span>
+                    <span class="value">${duplicateBranchName}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Course:</span>
+                    <span class="value">${courseInfo}</span>
+                </div>
+                ${masterBranch ? `
+                <div class="info-row">
+                    <span class="label">Master Branch:</span>
+                    <span class="value">${masterBranch.MasterBranchName || masterBranch._id}</span>
+                </div>
+                ` : ''}
+                <div class="info-row">
+                    <span class="label">Original Date:</span>
+                    <span class="value">${existingEnquiry.createdAt ? new Date(existingEnquiry.createdAt).toLocaleString() : 'Unknown'}</span>
+                </div>
+            </div>
+        </div>
+
+        
+    </div>
+</body>
+</html>
+`;
+      
+      console.log("Duplicate Notification:", duplicateNotification);
+
+      const superAdminMailOptions = {
+  from: 'admin@jbkacademy.in', // Use authenticated email
+    // Optional: Allow replies to go to the original sender
+  to: 'admin@jbkacademy.in',
+  subject: `Duplicate Enquiry Notification - ${data.firstname} ${data.lastname}`,
+  html: `${duplicateNotification}`
+};
+
+      await transporter.sendMail(superAdminMailOptions);
+    }
+
+    // Prepare confirmation email for the enquirer
+    // const emailBody = `
+    // Hi ${data.firstname} ${data.lastname},
+    
+    // Thank you for registering with us! Here are the details you submitted:
+    
+    // - College Name: ${data.CollegeName}
+    // - Branch ID: ${data.branchId}
+    // - Branch Name: ${branch.branchName || ""}
+    // - City: ${data.city}
+    // - State: ${data.state}
+    // - Qualification: ${data.qualification}
+    // - Year of Passout: ${data.yearOfPassout}
+    // - Joining Plan: ${data.joiningPlan}
+    // - Referral Source: ${data.referralSource}
+    // - Reference Name: ${data.ReferenceneName || "(Not Provided)"}
+
+    
+    // We have received your application and will get in touch with you soon.
+    
+    // If you have any questions, feel free to reply to this email.
+    
+    // Best regards,
+    // [Your Organization Name]
+    // [Contact Information]
+    // `;
+const emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+        .container { max-width: 650px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 300; }
+        .header .subtitle { margin: 10px 0 0 0; font-size: 14px; opacity: 0.9; }
+        .content { padding: 30px; }
+        .greeting { font-size: 18px; color: #2c3e50; margin-bottom: 20px; }
+        .message { color: #34495e; margin-bottom: 25px; font-size: 16px; }
+        .details-section { background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin: 25px 0; }
+        .section-title { color: #2c3e50; font-size: 18px; font-weight: 600; margin-bottom: 20px; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .detail-item { margin-bottom: 12px; }
+        .detail-label { font-weight: 600; color: #7f8c8d; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 3px; }
+        .detail-value { color: #2c3e50; font-size: 15px; font-weight: 500; }
+        .next-steps { background-color: #e8f5e8; border-left: 4px solid #27ae60; padding: 20px; margin: 25px 0; border-radius: 0 5px 5px 0; }
+        .next-steps-title { color: #27ae60; font-weight: 600; margin-bottom: 10px; font-size: 16px; }
+        .contact-section { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 25px 0; border-radius: 0 5px 5px 0; }
+        .contact-title { color: #856404; font-weight: 600; margin-bottom: 10px; font-size: 16px; }
+        .footer { background-color: #2c3e50; color: #ecf0f1; padding: 25px; text-align: center; }
+        .footer .company-name { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+        .footer .contact-info { font-size: 14px; opacity: 0.9; color: #ecf0f1; }
+        .footer .contact-info a { color: #ecf0f1 !important; text-decoration: none; }
+        .footer .contact-info a:hover { color: #ffffff !important; text-decoration: underline; }
+        .reference-highlight { background-color: #e3f2fd; border-left: 3px solid #2196f3; padding: 10px; margin-top: 10px; border-radius: 0 4px 4px 0; }
+        @media (max-width: 600px) {
+            .details-grid { grid-template-columns: 1fr; }
+            .content { padding: 20px; }
+            .header { padding: 20px 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Enquiry Received</h1>
+        </div>
+
+        <div class="content">
+            <div class="greeting">
+                Hi <strong>${data.firstname} ${data.lastname}</strong>,
+            </div>
+
+            <div class="message">
+                Thank you for your enquiry.
+            </div>
+
+            <div class="details-section">
+                <div class="section-title">📋 Your Enquiry Details</div>
+                
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">College Name</span>
+                        <div class="detail-value">${data.CollegeName}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Branch ID</span>
+                        <div class="detail-value">${data.branchId}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Branch Name</span>
+                        <div class="detail-value">${branch.branchName || "Not Specified"}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Location</span>
+                        <div class="detail-value">${data.city}, ${data.state}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Qualification</span>
+                        <div class="detail-value">${data.qualification}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Year of Passout</span>
+                        <div class="detail-value">${data.yearOfPassout}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Joining Plan</span>
+                        <div class="detail-value">${data.joiningPlan}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">How did you hear about us?</span>
+                        <div class="detail-value">${data.referralSource}</div>
+                    </div>
+                </div>
+
+                ${data.ReferenceneName && data.ReferenceneName !== "(Not Provided)" ? `
+                <div class="reference-highlight">
+                    <span class="detail-label">Reference Contact</span>
+                    <div class="detail-value">${data.ReferenceneName}</div>
+                </div>
+                ` : ''}
+            </div>
+
+            <div class="next-steps">
+                <div class="next-steps-title">🚀 What's Next?</div>
+                <p>Our admissions team will review your application and contact you within <strong>24-48 hours</strong> to discuss the next steps in your journey with us.</p>
+                <p>In the meantime, feel free to explore our website and familiarize yourself with our programs and facilities.</p>
+            </div>
+
+            <div class="contact-section">
+                <div class="contact-title">💬 Need Help?</div>
+                <p>If you have any questions or need to update your information, don't hesitate to reach out to us by replying to this email or contacting our support team.</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="company-name">JBK Academy</div>
+            <div class="contact-info">
+                📧 <a href="mailto:admin@jbkacademy.in">admin@jbkacademy.in</a> | 📞 <a href="tel:+919985023100">+91 9985023100</a><br>
+                🌐 <a href="https://jbkacademy.in/" target="_blank">https://jbkacademy.in/</a>
+            </div>
+             <div style="text-align: center; margin: 25px 0; padding-top: 20px; border-top: 1px solid #34495e;">
+          <p style="margin-bottom: 15px; font-size: 14px; color: #bdc3c7; font-weight: 300; letter-spacing: 0.5px;">
+            CONNECT WITH US
+          </p>
+          <div>
+            <a href="https://m.facebook.com/p/JBK-Academy-Hyderabad" target="_blank" style="text-decoration: none; margin: 0 12px; display: inline-block;">
+              <div style="width: 40px; height: 40px; background-color: #3b5998; border-radius: 50%; display: inline-block; line-height: 40px; text-align: center;">
+                <span style="color: #ffffff; font-size: 18px; font-weight: bold;">f</span>
+              </div>
+            </a>
+            <a href="https://www.instagram.com/jbk_academy/?hl=en" target="_blank" style="text-decoration: none; margin: 0 10px; display: inline-block;">
+              <div style="width: 40px; height: 40px; background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); border-radius: 50%; display: inline-block; line-height: 40px; text-align: center;">
+                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">Insta</span>
+              </div>
+            </a>
+            <a href="https://www.linkedin.com/company/jbk-academy" target="_blank" style="text-decoration: none; margin: 0 12px; display: inline-block;">
+              <div style="width: 40px; height: 40px; background-color: #0077b5; border-radius: 50%; display: inline-block; line-height: 40px; text-align: center;">
+                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">in</span>
+              </div>
+            </a>
+            <a href="https://m.youtube.com/channel/UCSxp1XWEBEfWDhsiUCGYJ7A" target="_blank" style="text-decoration: none; margin: 0 12px; display: inline-block;">
+              <div style="width: 40px; height: 40px; background-color: #ff0000; border-radius: 50%; display: inline-block; line-height: 40px; text-align: center;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: bold;">▶</span>
+              </div>
+            </a>
+            <a href="https://wa.me/919985023100" target="_blank" style="text-decoration: none; margin: 0 12px; display: inline-block;">
+              <div style="width: 40px; height: 40px; background-color: #25d366; border-radius: 50%; display: inline-block; line-height: 40px; text-align: center;">
+                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">W</span>
+              </div>
+            </a>
+          </div>
+        </div>
+        </div>
+    </div>
+</body>
+</html>
+`;
+
+    const mailOptions1 = {
+      from: 'admin@jbkacademy.in',
+      to: data.email,
+      subject: `We've Received Your Inquiry, ${data.firstname}!`,
+      html: emailBody
+    };
+
+    // Create enquiry object with all data from request
+    const enquiryData = {
+      ...req.body
+    };
+
+    // Add MasterBranchID if found
+    if (masterBranch) {
+      enquiryData.MasterBranchID = masterBranch._id;
+    }
+
+    // NEW: Handle telecaller assignment if isTelecaller is true
+    if (data.isTelecaller === true && data.createdBy && data.createdBy.userId) {
+      console.log("Processing telecaller assignment...");
+      
+      // Set status as assigned and assignedTo field
+      enquiryData.status = "assigned";
+      enquiryData.assignedTo = data.createdBy.userId;
+      
+      console.log(`Enquiry will be assigned to telecaller: ${data.createdBy.userId}`);
+    }
+
+    // Save the new enquiry to database with MasterBranchID if available
+    const enquiry = new Enquiry(enquiryData);
+    const savedEnquiry = await enquiry.save();
+    console.log("Enquiry saved with ID:", savedEnquiry._id);
+
+    // NEW: Update Faculty record if telecaller assignment
+    if (data.isTelecaller === true && data.createdBy && data.createdBy.userId) {
+      try {
+        // Update Faculty (Add assigned enquiry to telecaller's record)
+        const updatedFaculty = await Faculty.findByIdAndUpdate(
+          data.createdBy.userId,
+          {
+            $push: { assignedEnquiries: savedEnquiry._id }
+          },
+          { new: true }
+        );
+        
+        if (updatedFaculty) {
+          console.log(`Successfully assigned enquiry ${savedEnquiry._id} to telecaller ${data.createdBy.userId}`);
+        } else {
+          console.log(`Warning: Faculty with ID ${data.createdBy.userId} not found for assignment`);
+        }
+      } catch (assignmentError) {
+        console.error("Error updating telecaller assignment:", assignmentError);
+        // Don't fail the entire operation, just log the error
+      }
+    }
+
+    // Send confirmation email to enquirer
+try {
+  await transporter.sendMail(mailOptions1);
+  console.log("Confirmation email sent successfully to:", data.email);
+} catch (emailError) {
+  console.error("Failed to send confirmation email:", emailError.message);
+  // Don't throw error - enquiry is already saved
+}
+
+
+    res.status(201).json({
+      message: "Enquiry data saved successfully",
+      MasterBranchID: masterBranch ? masterBranch._id : null,
+      enquiryId: savedEnquiry._id,
+      assignedTo: data.isTelecaller === true ? data.createdBy.userId : null
+    });
+  } catch (error) {
+    console.error("Error processing enquiry:", error);
+    res.status(500).json({ error: "Error saving Enquiry data" });
+  }
+});
+
+
+
+
+
+
+
+
 //////////////////////////////////////////////////////////////////////////////
 app.get("/api/walkin-vs-admissions", async (req, res) => {
   try {
@@ -18716,8 +19315,8 @@ app.listen(PORT, () => {
 //   port: 465,
 //   secure: true, // SSL
 //   auth: {
-//     user: 'info@jbkacademy.in', // Lowercase recommended
-//     pass: 'Karthik@9581766526',
+//     user: 'admin@jbkacademy.in', // Lowercase recommended
+//     pass: 'Karthik@8464',
 //   },
 //   logger: true,
 //   debug: true
@@ -20640,8 +21239,8 @@ app.listen(PORT, () => {
 //     port: 587,
 //     secure: false, // Use STARTTLS
 //     auth: {
-//       user: 'info@jbkacademy.in',
-//       pass: 'Karthik@9581766526', // Consider using environment variables for credentials
+//       user: 'admin@jbkacademy.in',
+//       pass: 'Karthik@8464', // Consider using environment variables for credentials
 //     },
 //     tls: {
 //       rejectUnauthorized: false
@@ -20665,7 +21264,7 @@ app.listen(PORT, () => {
 
 //   // FIXED: Simplified email content
 //   const mailOptions = {
-//     from: '"JBK Academy" <info@jbkacademy.in>',
+//     from: '"JBK Academy" <admin@jbkacademy.in>',
 //     to: email,
 //     subject: 'Welcome to JBK Academy - Faculty Portal Access',
 //     html: `
@@ -23331,9 +23930,9 @@ app.listen(PORT, () => {
 //       console.log("Duplicate Notification:", duplicateNotification);
 
 //       const superAdminMailOptions = {
-//   from: 'info@jbkacademy.in', // Use authenticated email
+//   from: 'admin@jbkacademy.in', // Use authenticated email
 //     // Optional: Allow replies to go to the original sender
-//   to: 'info@jbkacademy.in',
+//   to: 'admin@jbkacademy.in',
 //   subject: `Duplicate Enquiry Notification - ${data.firstname} ${data.lastname}`,
 //   html: `${duplicateNotification}`
 // };
@@ -23487,7 +24086,7 @@ app.listen(PORT, () => {
 //         <div class="footer">
 //             <div class="company-name">JBK Academy</div>
 //             <div class="contact-info">
-//                 📧 <a href="mailto:info@jbkacademy.in">info@jbkacademy.in</a> | 📞 <a href="tel:+919985023100">+91 9985023100</a><br>
+//                 📧 <a href="mailto:admin@jbkacademy.in">admin@jbkacademy.in</a> | 📞 <a href="tel:+919985023100">+91 9985023100</a><br>
 //                 🌐 <a href="https://jbkacademy.in/" target="_blank">https://jbkacademy.in/</a>
 //             </div>
 //              <div style="text-align: center; margin: 25px 0; padding-top: 20px; border-top: 1px solid #34495e;">
@@ -23529,7 +24128,7 @@ app.listen(PORT, () => {
 // `;
 
 //     const mailOptions1 = {
-//       from: 'info@jbkacademy.in',
+//       from: 'admin@jbkacademy.in',
 //       to: data.email,
 //       subject: `We've Received Your Inquiry, ${data.firstname}!`,
 //       html: emailBody
@@ -23817,8 +24416,8 @@ app.listen(PORT, () => {
 // // `;
 
 // //         const superAdminMailOptions = {
-// //           from: 'info@jbkacademy.in',
-// //           to: 'info@jbkacademy.in',
+// //           from: 'admin@jbkacademy.in',
+// //           to: 'admin@jbkacademy.in',
 // //           subject: `Duplicate Enquiry Notification - ${data.firstname} ${data.lastname}`,
 // //           html: duplicateNotification
 // //         };
@@ -23894,7 +24493,7 @@ app.listen(PORT, () => {
 // //         </div>
 // //         <div class="footer">
 // //             <div>JBK Academy</div>
-// //             <div>📧 info@jbkacademy.in | 📞 +91 9985023100</div>
+// //             <div>📧 admin@jbkacademy.in | 📞 +91 9985023100</div>
 // //         </div>
 // //     </div>
 // // </body>
@@ -23902,7 +24501,7 @@ app.listen(PORT, () => {
 // // `;
 
 // //       const mailOptions1 = {
-// //         from: 'info@jbkacademy.in',
+// //         from: 'admin@jbkacademy.in',
 // //         to: data.email,
 // //         subject: `We've Received Your Inquiry, ${data.firstname}!`,
 // //         html: emailBody
@@ -25181,8 +25780,8 @@ app.listen(PORT, () => {
 //   port: 465,
 //   secure: true, // SSL
 //   auth: {
-//     user: 'info@jbkacademy.in', // Lowercase recommended
-//     pass: 'Karthik@9581766526',
+//     user: 'admin@jbkacademy.in', // Lowercase recommended
+//     pass: 'Karthik@8464',
 //   },
 //   logger: true,
 //   debug: true
@@ -25190,7 +25789,7 @@ app.listen(PORT, () => {
 
 //   // Email content
 // const mailOptions = {
-//   from: '"JBK Academy" <info@jbkacademy.in>',
+//   from: '"JBK Academy" <admin@jbkacademy.in>',
 //   to: email,
 //   subject: 'Registration Confirmation - JBK Academy',
 //   html: `
@@ -25301,7 +25900,7 @@ app.listen(PORT, () => {
 //           </p>
 //           <p style="margin: 8px 0; font-size: 16px; font-weight: 300;">
 //             <span style="color: #bdc3c7;">Email:</span> 
-//             <a href="mailto:info@jbkacademy.in" style="color: #74b9ff; text-decoration: none; font-weight: 400;">info@jbkacademy.in</a>
+//             <a href="mailto:admin@jbkacademy.in" style="color: #74b9ff; text-decoration: none; font-weight: 400;">admin@jbkacademy.in</a>
 //           </p>
 //           <p style="margin: 8px 0; font-size: 16px; font-weight: 300;">
 //             <span style="color: #bdc3c7;">Website:</span> 
@@ -30563,7 +31162,7 @@ app.listen(PORT, () => {
 //     const studentName = `${student.fName || ''} ${student.lName || ''}`.trim() || 'Student';
 
 //     const mailOptions = {
-//       from: 'info@jbkacademy.in', // Replace with your actual email
+//       from: 'admin@jbkacademy.in', // Replace with your actual email
 //       to: student.email,
 //       subject: `Payment Reminder: Installment #${installmentNumber} Due Soon`,
 //    html:`<!DOCTYPE html>
@@ -30675,7 +31274,7 @@ app.listen(PORT, () => {
 //                     📞 Phone: +91 919985023100
 //                 </p>
 //                 <p style="color: #bdc3c7; margin: 5px 0; font-size: 14px;">
-//                     ✉️ Email: info@jbkacademy.in
+//                     ✉️ Email: admin@jbkacademy.in
 //                 </p>
 //                 <p style="color: #bdc3c7; margin: 5px 0; font-size: 14px;">
 //                     📍 Address: JBK Academy Hyderabad, 
