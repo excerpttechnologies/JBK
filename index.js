@@ -54,11 +54,20 @@ const getRolesFromUser = (user) => {
 };
 
 const isSuperAdminUser = (user) => getRolesFromUser(user).includes("superadmin");
+// const isSubAdminUser = (user) => {
+//   const roles = getRolesFromUser(user);
+//   return roles.includes("subadmin") || roles.includes("branchadmin");
+// };
 const isSubAdminUser = (user) => {
-  const roles = getRolesFromUser(user);
-  return roles.includes("subadmin") || roles.includes("branchadmin");
-};
+  const activeRole = normalizeRole(user.role);
 
+  console.log("Active Role:", activeRole);
+
+  return (
+    activeRole === "subadmin" ||
+    activeRole === "branchadmin"
+  );
+};
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
