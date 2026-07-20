@@ -6390,33 +6390,66 @@ app.get('/api/dashboard/enquiries', authenticateToken, async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
 app.post("/api/save-followup", async (req, res) => {
-  const { enquiryId, userId, status,remark, followUpDates } = req.body;
+  const { enquiryId, userId, status, remark, followUpDates } = req.body;
   console.log("leadfollowups", req.body);
 
   try {
-    // Use ISO format for today's date (YYYY-MM-DD)
     const currentDate = new Date().toISOString().split('T')[0];
     const nextFollowUpDate = followUpDates.length > 0 ? followUpDates[0] : null;
 
-    // ✅ Update follow-up in Enquiry without full document validation
-    await Enquiry.updateOne(
-      { _id: enquiryId },
-      {
-        $push: {
-          followUps: {
-            teleCaller: userId,
-            status,
-            followedUpDate: currentDate,
-            nextFollowUpDate,
-            remark // Add remark to follow-up
-          }
-        },
-        ...(status && { status }) // only update status if provided
-      }
-    );
+    // Normalize status
+    const normalizedStatus = String(status || "")
+      .toLowerCase()
+      .replace(/[\s_-]+/g, "");
 
-    // ✅ Update follow-up in Faculty without full document validation
+    const isConvertedToWalkin = normalizedStatus === "convertedtowalkin";
+
+    // Build the update object
+    const enquiryUpdate = {
+      $push: {
+        followUps: {
+          teleCaller: userId,
+          status,
+          followedUpDate: currentDate,
+          nextFollowUpDate,
+          remark
+        }
+      }
+    };
+
+    // ✅ FIX: Keep the status as "ConvertedtoWalkin"
+    let statusToSet = status;
+    // Remove this condition that changes to "unassigned"
+    // if (isConvertedToWalkin) {
+    //   statusToSet = "unassigned";  // ← REMOVE THIS
+    // }
+
+    if (statusToSet) {
+      enquiryUpdate.$set = {
+        status: statusToSet  // ← This will be "ConvertedtoWalkin"
+      };
+    }
+
+    // Also set formatting if converted to walk-in
+    if (isConvertedToWalkin) {
+      enquiryUpdate.$set = {
+        ...(enquiryUpdate.$set || {}),
+        formatting: "Walkin"
+      };
+    }
+
+    // Update Enquiry
+    await Enquiry.updateOne({ _id: enquiryId }, enquiryUpdate);
+
+    // Update Faculty
     await Faculty.updateOne(
       { _id: userId },
       {
@@ -6426,7 +6459,7 @@ app.post("/api/save-followup", async (req, res) => {
             status,
             followedUpDate: currentDate,
             nextFollowUpDate,
-            remark // Add remark to follow-up
+            remark
           }
         }
       }
@@ -6440,21 +6473,378 @@ app.post("/api/save-followup", async (req, res) => {
   }
 });
 
+
+
+
+// app.get("/api/followups/:enquiryId", async (req, res) => {
+//   try {
+//     const { enquiryId } = req.params;
+
+//     const faculty = await Faculty.findOne(
+//       { "followUps.enquiryId": enquiryId },
+//       { "followUps": 1, _id: 0 } // Fetch all follow-ups for this enquiryId
+//     );
+
+//     res.json({ followUps: faculty ? faculty.followUps : [] });
+//   } catch (error) {
+//     console.error("Error fetching follow-ups:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
 app.get("/api/followups/:enquiryId", async (req, res) => {
   try {
     const { enquiryId } = req.params;
 
-    const faculty = await Faculty.findOne(
-      { "followUps.enquiryId": enquiryId },
-      { "followUps": 1, _id: 0 } // Fetch all follow-ups for this enquiryId
-    );
+    // ✅ Get follow-ups directly from the Enquiry collection
+    const enquiry = await Enquiry.findById(enquiryId).select('followUps');
+    
+    if (!enquiry) {
+      return res.status(404).json({ message: "Enquiry not found" });
+    }
 
-    res.json({ followUps: faculty ? faculty.followUps : [] });
+    const followUps = enquiry.followUps || [];
+
+    res.json({ followUps });
   } catch (error) {
     console.error("Error fetching follow-ups:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// app.post("/api/save-followup", async (req, res) => {
+//   const { enquiryId, userId, status,remark, followUpDates } = req.body;
+//   console.log("leadfollowups", req.body);
+
+//   try {
+//     // Use ISO format for today's date (YYYY-MM-DD)
+//     const currentDate = new Date().toISOString().split('T')[0];
+//     const nextFollowUpDate = followUpDates.length > 0 ? followUpDates[0] : null;
+
+//     // ✅ Update follow-up in Enquiry without full document validation
+//     await Enquiry.updateOne(
+//       { _id: enquiryId },
+//       {
+//         $push: {
+//           followUps: {
+//             teleCaller: userId,
+//             status,
+//             followedUpDate: currentDate,
+//             nextFollowUpDate,
+//             remark // Add remark to follow-up
+//           }
+//         },
+//         ...(status && { status }) // only update status if provided
+//       }
+//     );
+
+//     // ✅ Update follow-up in Faculty without full document validation
+//     await Faculty.updateOne(
+//       { _id: userId },
+//       {
+//         $push: {
+//           followUps: {
+//             enquiryId,
+//             status,
+//             followedUpDate: currentDate,
+//             nextFollowUpDate,
+//             remark // Add remark to follow-up
+//           }
+//         }
+//       }
+//     );
+
+//     res.status(200).json({ message: "Follow-up saved successfully" });
+
+//   } catch (error) {
+//     console.error("Error saving follow-up:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
+
+
+
+///sagar
+
+
+
+
+
+
+
+
+
+
+//sagar
+// app.post("/api/save-followup", async (req, res) => {
+//   const { enquiryId, userId, status, remark, followUpDates } = req.body;
+//   console.log("leadfollowups", req.body);
+
+//   try {
+//     const currentDate = new Date().toISOString().split('T')[0];
+//     const nextFollowUpDate = followUpDates.length > 0 ? followUpDates[0] : null;
+
+//     // Normalize status
+//     const normalizedStatus = String(status || "")
+//       .toLowerCase()
+//       .replace(/[\s_-]+/g, "");
+
+//     const isConvertedToWalkin = normalizedStatus === "convertedtowalkin";
+
+//     // Build the update object
+//     const enquiryUpdate = {
+//       $push: {
+//         followUps: {
+//           teleCaller: userId,
+//           status,
+//           followedUpDate: currentDate,
+//           nextFollowUpDate,
+//           remark
+//         }
+//       }
+//     };
+
+//     // Determine what status to set on the enquiry
+//     let statusToSet = status;
+//     if (isConvertedToWalkin) {
+//       statusToSet = "unassigned";  // ← Change to unassigned
+//     }
+
+//     if (statusToSet) {
+//       enquiryUpdate.$set = {
+//         status: statusToSet
+//       };
+//     }
+
+//     // Also set formatting if converted to walk-in
+//     if (isConvertedToWalkin) {
+//       enquiryUpdate.$set = {
+//         ...(enquiryUpdate.$set || {}),
+//         formatting: "Walkin"
+//       };
+//     }
+
+//     // Update Enquiry
+//     await Enquiry.updateOne({ _id: enquiryId }, enquiryUpdate);
+
+//     // Update Faculty
+//     await Faculty.updateOne(
+//       { _id: userId },
+//       {
+//         $push: {
+//           followUps: {
+//             enquiryId,
+//             status,
+//             followedUpDate: currentDate,
+//             nextFollowUpDate,
+//             remark
+//           }
+//         }
+//       }
+//     );
+
+//     res.status(200).json({ message: "Follow-up saved successfully" });
+
+//   } catch (error) {
+//     console.error("Error saving follow-up:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
+
+
+
+
+
+
+//////////16-7-26
+
+// app.post("/api/save-followup", async (req, res) => {
+//   const { enquiryId, userId, status, remark, followUpDates } = req.body;
+//   console.log("leadfollowups", req.body);
+
+//   try {
+//     const currentDate = new Date().toISOString().split('T')[0];
+//     const nextFollowUpDate = followUpDates.length > 0 ? followUpDates[0] : null;
+
+//     // Normalize status so "Converted to Walkin" / "ConvertedtoWalkin" both match
+//     const normalizedStatus = String(status || "")
+//       .toLowerCase()
+//       .replace(/[\s_-]+/g, "");
+
+//     const isConvertedToWalkin = normalizedStatus === "convertedtowalkin";
+
+//     const enquiryUpdate = {
+//       $push: {
+//         followUps: {
+//           teleCaller: userId,
+//           status,
+//           followedUpDate: currentDate,
+//           nextFollowUpDate,
+//           remark
+//         }
+//       },
+//       ...(status && { status })
+//     };
+
+//     // ✅ NEW: tag the enquiry so it shows up in "All Walk-ins"
+//     if (isConvertedToWalkin) {
+//       enquiryUpdate.$set = {
+//         ...(enquiryUpdate.$set || {}),
+//         formatting: "Walkin"
+//       };
+//     }
+
+//     await Enquiry.updateOne({ _id: enquiryId }, enquiryUpdate);
+
+//     await Faculty.updateOne(
+//       { _id: userId },
+//       {
+//         $push: {
+//           followUps: {
+//             enquiryId,
+//             status,
+//             followedUpDate: currentDate,
+//             nextFollowUpDate,
+//             remark
+//           }
+//         }
+//       }
+//     );
+
+//     res.status(200).json({ message: "Follow-up saved successfully" });
+
+//   } catch (error) {
+//     console.error("Error saving follow-up:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
+
+// app.post("/api/save-followup", async (req, res) => {
+//   const { enquiryId, userId, status, remark, followUpDates } = req.body;
+//   console.log("leadfollowups", req.body);
+
+//   try {
+//     const currentDate = new Date().toISOString().split('T')[0];
+//     const nextFollowUpDate = followUpDates.length > 0 ? followUpDates[0] : null;
+
+//     // Normalize status
+//     const normalizedStatus = String(status || "")
+//       .toLowerCase()
+//       .replace(/[\s_-]+/g, "");
+
+//     const isConvertedToWalkin = normalizedStatus === "convertedtowalkin";
+
+//     // Build the update object
+//     const enquiryUpdate = {
+//       $push: {
+//         followUps: {
+//           teleCaller: userId,
+//           status,
+//           followedUpDate: currentDate,
+//           nextFollowUpDate,
+//           remark
+//         }
+//       }
+//     };
+
+//     // ✅ FIX: Keep the status as "ConvertedtoWalkin"
+//     let statusToSet = status;
+//     // Remove this condition that changes to "unassigned"
+//     // if (isConvertedToWalkin) {
+//     //   statusToSet = "unassigned";  // ← REMOVE THIS
+//     // }
+
+//     if (statusToSet) {
+//       enquiryUpdate.$set = {
+//         status: statusToSet  // ← This will be "ConvertedtoWalkin"
+//       };
+//     }
+
+//     // Also set formatting if converted to walk-in
+//     if (isConvertedToWalkin) {
+//       enquiryUpdate.$set = {
+//         ...(enquiryUpdate.$set || {}),
+//         formatting: "Walkin"
+//       };
+//     }
+
+//     // Update Enquiry
+//     await Enquiry.updateOne({ _id: enquiryId }, enquiryUpdate);
+
+//     // Update Faculty
+//     await Faculty.updateOne(
+//       { _id: userId },
+//       {
+//         $push: {
+//           followUps: {
+//             enquiryId,
+//             status,
+//             followedUpDate: currentDate,
+//             nextFollowUpDate,
+//             remark
+//           }
+//         }
+//       }
+//     );
+
+//     res.status(200).json({ message: "Follow-up saved successfully" });
+
+//   } catch (error) {
+//     console.error("Error saving follow-up:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
+
+
+
+// app.get("/api/followups/:enquiryId", async (req, res) => {
+//   try {
+//     const { enquiryId } = req.params;
+
+//     const faculty = await Faculty.findOne(
+//       { "followUps.enquiryId": enquiryId },
+//       { "followUps": 1, _id: 0 } // Fetch all follow-ups for this enquiryId
+//     );
+
+//     res.json({ followUps: faculty ? faculty.followUps : [] });
+//   } catch (error) {
+//     console.error("Error fetching follow-ups:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
+// app.get("/api/followups/:enquiryId", async (req, res) => {
+//   try {
+//     const { enquiryId } = req.params;
+
+//     const faculty = await Faculty.findOne(
+//       { "followUps.enquiryId": enquiryId },
+//       { "followUps": 1, _id: 0 }
+//     );
+
+//     const followUps = faculty
+//       ? faculty.followUps.filter((f) => f.enquiryId === enquiryId)
+//       : [];
+
+//     res.json({ followUps });
+//   } catch (error) {
+//     console.error("Error fetching follow-ups:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
+
+
+
+
+
+
+
+
 
 // app.get("/api/followups", async (req, res) => {
 //   try {
